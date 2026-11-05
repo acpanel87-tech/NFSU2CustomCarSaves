@@ -83,19 +83,44 @@ git rev-parse --is-inside-work-tree 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "Not a git repository." }
 
 $branch = (git rev-parse --abbrev-ref HEAD).Trim()
-git push -u origin $branch 2>$null
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+git push -u origin $branch | Out-Null
+$pushCode = $LASTEXITCODE
+$ErrorActionPreference = $prevEap
+if ($pushCode -ne 0) {
+    Write-Warning "git push returned $pushCode — continuing if remote already has the commit."
+}
+
+# Tag locally if missing (gh release create can create the tag from current HEAD)
+$ErrorActionPreference = "Continue"
+git rev-parse $tag 2>$null | Out-Null
+$tagExists = ($LASTEXITCODE -eq 0)
+$ErrorActionPreference = $prevEap
+if (-not $tagExists) {
+    git tag $tag
+    $ErrorActionPreference = "Continue"
+    git push origin $tag | Out-Null
+    $ErrorActionPreference = $prevEap
+}
 
 Write-Host "Creating GitHub release $tag ..."
+$notesFile = Join-Path $env:TEMP ("ccs_release_notes_" + [guid]::NewGuid().ToString("N") + ".md")
+Set-Content -Path $notesFile -Value $Notes -Encoding utf8
+
 $ghArgs = @(
     "release", "create", $tag,
     $stagedZip,
     "--title", $title,
-    "--notes", $Notes
+    "--notes-file", $notesFile,
+    "--target", $branch
 )
 if ($isPrerelease) { $ghArgs += "--prerelease" }
 
 & gh @ghArgs
-if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
+$relCode = $LASTEXITCODE
+Remove-Item $notesFile -Force -ErrorAction SilentlyContinue
+if ($relCode -ne 0) { throw "gh release create failed" }
 
 $repo = (gh repo view --json nameWithOwner -q .nameWithOwner).Trim()
 $url = "https://github.com/$repo/releases/tag/$tag"
