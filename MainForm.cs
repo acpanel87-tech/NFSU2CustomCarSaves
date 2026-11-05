@@ -146,6 +146,8 @@ public sealed class MainForm : Form
         };
         _btnAreaCareer = UiTheme.Btn("Career garage", () => SetCarArea(menuMyCars: false), primary: true);
         _btnAreaMyCars = UiTheme.Btn("Customize Car Select", () => SetCarArea(menuMyCars: true));
+        if (_btnAreaCareer is GlowButton gCareer0) gCareer0.Kind = GlowKind.PinkDark;
+        if (_btnAreaMyCars is GlowButton gMy0) gMy0.Kind = GlowKind.Pink;
         areaTabs.Controls.Add(T(_btnAreaCareer,
             "Career garage slots 1–10 (profile + GARAGE.DAT)."));
         areaTabs.Controls.Add(T(_btnAreaMyCars,
@@ -742,9 +744,9 @@ public sealed class MainForm : Form
     {
         _menuMyCars = menuMyCars;
         if (_btnAreaCareer is GlowButton gCareer)
-            gCareer.Kind = menuMyCars ? GlowKind.Default : GlowKind.Primary;
+            gCareer.Kind = menuMyCars ? GlowKind.Pink : GlowKind.PinkDark;
         if (_btnAreaMyCars is GlowButton gMy)
-            gMy.Kind = menuMyCars ? GlowKind.Primary : GlowKind.Default;
+            gMy.Kind = menuMyCars ? GlowKind.PinkDark : GlowKind.Pink;
 
         _slotHint.Text = menuMyCars
             ? "Customize Car Select (1–20) · Copy a car → switch Career garage → Paste"
@@ -1360,9 +1362,9 @@ public sealed class MainForm : Form
         if (_session == null) throw new InvalidOperationException("Open a save first.");
         if (MessageBox.Show(this,
                 "100% Save (Jane free-play, browser-safe)?\n\n" +
-                "• Career / free roam like Jane (not stuck in Rachel)\n" +
+                "• Career free-play — stages finished (skip Rachel / early speech)\n" +
                 "• Car shop / lot fully unlocked\n" +
-                "• Hidden shops unlocked\n" +
+                "• All specialty / hidden shops unlocked\n" +
                 "• All garage slots unlocked\n" +
                 "• Money → 99,999,999\n" +
                 "• Cars already in slots are LEFT UNCHANGED (no retune)\n\n" +

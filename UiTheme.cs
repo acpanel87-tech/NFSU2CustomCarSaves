@@ -252,7 +252,7 @@ internal static class UiTheme
     }
 }
 
-internal enum GlowKind { Default, Primary, Accent, Info, Danger, Start }
+internal enum GlowKind { Default, Primary, Accent, Info, Danger, Start, Pink, PinkDark }
 
 /// <summary>Rounded gradient button with a gentle hover/CTA glow.</summary>
 internal sealed class GlowButton : Button
@@ -325,8 +325,19 @@ internal sealed class GlowButton : Button
                 _edge = C(0x38, 0x52, 0x98); _glow = C(0x70, 0xA0, 0xFF);
                 break;
             case GlowKind.Danger:
+                // Classic red wipe / destructive
                 _top = C(0x7A, 0x24, 0x4A); _bottom = C(0x55, 0x18, 0x36); _fore = UiTheme.DangerText;
                 _edge = C(0x78, 0x30, 0x50); _glow = C(0xFF, 0x70, 0x98);
+                break;
+            case GlowKind.PinkDark:
+                // Selected Career / Customize tab
+                _top = C(0xC4, 0x3A, 0x7A); _bottom = C(0x8A, 0x1E, 0x52); _fore = C(0xFF, 0xE8, 0xF0);
+                _edge = C(0xA0, 0x30, 0x68); _glow = C(0xFF, 0x6B, 0xA8);
+                break;
+            case GlowKind.Pink:
+                // Unselected tab
+                _top = C(0xF0, 0xA8, 0xC8); _bottom = C(0xE0, 0x7A, 0xA8); _fore = C(0x3A, 0x0C, 0x24);
+                _edge = C(0xD0, 0x70, 0x98); _glow = C(0xFF, 0xB0, 0xD0);
                 break;
             case GlowKind.Start:
                 _top = C(0xFF, 0xDC, 0x6A); _bottom = C(0xF2, 0xB4, 0x2A); _fore = UiTheme.StartYellowText;

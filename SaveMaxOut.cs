@@ -3,7 +3,8 @@ namespace NFSU2CustomCarSaves;
 /// <summary>
 /// Browser-safe 100% free-play (Jane-style): car lot + shops + career unlock flags.
 /// Does NOT change cars in garage slots (no tune / no replace).
-/// Jane template is the reference (Templates/JANE).
+/// Jane template is the reference (Templates/JANE), then patched so specialty shops
+/// are fully on and early career / Rachel intro is skipped.
 /// </summary>
 public static class SaveMaxOut
 {
@@ -17,13 +18,15 @@ public static class SaveMaxOut
         var log = new List<string>();
         byte[] jane = LoadJaneTemplate();
 
-        // 1) Car lot unlock table (stock cars in shop) — Jane/Joey floats @ 0xBC
+        // 1) Car lot unlock table (stock cars in shop) — Jane floats @ 0xBC
         CopyRange(working, jane, CarLotOffset, CarLotEnd - CarLotOffset);
         log.Add("Car lot → Jane (shop stock cars unlocked)");
 
-        // 2) Hidden specialty shops
+        // 2) Hidden specialty shops — Jane leaves some off; force every special open
         CopyRange(working, jane, HiddenShopsOffset, HiddenShopsLen);
-        log.Add("Hidden shops → Jane");
+        for (int i = 0; i < HiddenShopsLen; i++)
+            working[HiddenShopsOffset + i] = 1;
+        log.Add("Specialty shops → all unlocked");
 
         // 3) Career progress / free-roam flags from Jane (NOT the car slot records)
         int baseOff = Layout.CareerSaveBase;
@@ -31,12 +34,27 @@ public static class SaveMaxOut
         CopyRange(working, jane, baseOff + Layout.CareerMoneyMarkersRel, Layout.CareerMoneyMarkersLen);
         CopyRange(working, jane, baseOff + Layout.CareerField8869Rel, Layout.CareerField8869Len);
 
-        // Stage pointer + URL table: Jane is stage=0 / numUsed=0 / empty 7B00 (not stuck mid-mission)
+        // Stage pointer + URL table: empty (not stuck mid-mission / URL)
         BitConverter.GetBytes(0).CopyTo(working, baseOff + Layout.CareerCurrentStageRel);
         BitConverter.GetBytes(0).CopyTo(working, baseOff + Layout.CareerNumUsed7B00Rel);
         Array.Clear(working, baseOff + Layout.Career7B00Rel, Layout.Career7B00Count * Layout.Career7B00Stride);
         working[baseOff + Layout.CareerIsStartedRel] = 1;
-        log.Add("Career → Jane free-play (stages/markers; not stuck in Rachel/URL)");
+
+        // Skip Rachel / early career speech: mark every stage finished (Jane leaves stage 0 open)
+        for (int s = 0; s < Layout.CareerStageCount; s++)
+        {
+            int fin = baseOff + Layout.CareerStage0Rel + s * Layout.CareerStageSize + Layout.CareerStageFinishedRel;
+            if (fin < working.Length) working[fin] = 1;
+        }
+
+        // field_8869[8][2] — keep Jane's structure but ensure unlocked (1) where still 0
+        int f8869 = baseOff + Layout.CareerField8869Rel;
+        for (int i = 0; i < Layout.CareerField8869Len && f8869 + i < working.Length; i++)
+        {
+            if (working[f8869 + i] == 0) working[f8869 + i] = 1;
+        }
+
+        log.Add("Career → free-play (stages finished; Rachel/intro speech skipped)");
 
         // 4) Money only — leave profile name alone
         int money = Math.Min(99_999_999, Layout.MaxMoney);

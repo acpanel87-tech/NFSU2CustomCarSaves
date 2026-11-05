@@ -559,7 +559,7 @@ public sealed class BrowserSaveSession : IDisposable
         return
             "# NFSU2 settings\n" +
             "movies = off\n" +
-            "intro = skippable\n" +
+            "intro = off\n" +
             "language = english\n" +
             "subtitles = off\n" +
             "autosave = on\n" +
