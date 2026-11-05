@@ -5,6 +5,7 @@ public sealed class CarTuneForm : Form
 {
     private readonly byte[] _working;
     private readonly int _slot;
+    private readonly bool _menuMyCars;
     private readonly string _saveName;
     private readonly Action _onChanged;
 
@@ -40,16 +41,21 @@ public sealed class CarTuneForm : Form
     private uint _carHash;
     private bool _silent;
 
-    public CarTuneForm(byte[] working, int slot, Action onChanged, string? saveName = null)
+    public CarTuneForm(byte[] working, int slot, Action onChanged, string? saveName = null, bool menuMyCars = false)
     {
         _working = working;
         _slot = slot;
+        _menuMyCars = menuMyCars;
         _saveName = string.IsNullOrWhiteSpace(saveName) ? "save" : saveName.Trim();
         _onChanged = onChanged;
-        _carHash = GarageDatService.ReadSlot(working, slot).CarHash;
+        _carHash = menuMyCars
+            ? MyCarsService.Read(working, slot).CarHash
+            : GarageDatService.ReadSlot(working, slot).CarHash;
 
         UiTheme.ApplyForm(this);
-        Text = $"Car slot {slot + 1} — Tuning";
+        Text = menuMyCars
+            ? $"My Cars {slot + 1} — Tuning (menu Customize)"
+            : $"Car slot {slot + 1} — Tuning";
         Width = 920;
         Height = 720;
         StartPosition = FormStartPosition.CenterParent;
@@ -99,7 +105,7 @@ public sealed class CarTuneForm : Form
         {
             using var ask = new MaxOutOptionsForm();
             if (ask.ShowDialog(this) != DialogResult.OK) return;
-            CarTuneService.FullyTune(_working, _slot, ask.PerfMode, ask.UniqueMode);
+            CarTuneService.FullyTune(_working, _slot, ask.PerfMode, ask.UniqueMode, _menuMyCars);
             RefreshPerformance();
             _onChanged();
         }, primary: true);
@@ -181,7 +187,7 @@ public sealed class CarTuneForm : Form
         bottom.Controls.Add(UiTheme.Btn("DONE", () => { DialogResult = DialogResult.OK; Close(); }, primary: true));
         outer.Controls.Add(bottom, 0, 2);
 
-        if (!CarTuneService.Read(working, slot).IsOccupied)
+        if (!CarTuneService.Read(working, slot, menuMyCars).IsOccupied)
         {
             MessageBox.Show(this,
                 "This slot has no car. Unlock still works; tuning once a car is in the slot.",
@@ -278,8 +284,10 @@ public sealed class CarTuneForm : Form
     private void RefreshPerformance()
     {
         _silent = true;
-        var s = CarTuneService.Read(_working, _slot);
-        _carHash = GarageDatService.ReadSlot(_working, _slot).CarHash;
+        var s = CarTuneService.Read(_working, _slot, _menuMyCars);
+        _carHash = _menuMyCars
+            ? MyCarsService.Read(_working, _slot).CarHash
+            : GarageDatService.ReadSlot(_working, _slot).CarHash;
         _carName.Text = string.IsNullOrWhiteSpace(s.CarName) ? $"Slot {_slot + 1}" : s.CarName;
         _stateBadge.Text = s.IsLocked ? "Locked" : s.IsOccupied ? "Filled" : "Open (free)";
         _stateBadge.ForeColor = s.IsLocked ? UiTheme.Warning : UiTheme.Primary;
@@ -297,7 +305,7 @@ public sealed class CarTuneForm : Form
             _catList.SelectedIndex = keep >= 0 && keep < _catList.Items.Count ? keep : 0;
 
         _perfSummary.Text =
-            $"Performance flags  {s.PerfInstalled}/{s.PerfTotal}   ·   Unique  {s.UniqueOn}/{s.UniqueTotal}   ·   Shop unlocks  {s.UnlocksOn}/{s.UnlocksTotal}   ·   {CarTuneService.LevelLabel(s.EstimatedLevel)}";
+            $"Performance flags  {s.PerfInstalled}/{s.PerfTotal}   ·   Unique  {s.UniqueOn}/{s.UniqueTotal}   ·   Shop unlocks  {(_menuMyCars ? "n/a" : $"{s.UnlocksOn}/{s.UnlocksTotal}")}   ·   {CarTuneService.LevelLabel(s.EstimatedLevel)}";
 
         RebuildPartChecks();
         _silent = false;
@@ -327,7 +335,7 @@ public sealed class CarTuneForm : Form
                 AutoSize = true,
                 ForeColor = UiTheme.Text,
                 Font = UiTheme.UiFont(9.5f),
-                Checked = CarTuneService.IsPartOn(_working, _slot, part.Index),
+                Checked = CarTuneService.IsPartOn(_working, _slot, part.Index, _menuMyCars),
                 Margin = new Padding(0, 2, 0, 2),
                 Cursor = Cursors.Hand,
             };
@@ -336,7 +344,7 @@ public sealed class CarTuneForm : Form
             {
                 if (_silent) return;
                 // Raw toggles: no conflict wipe when checking individually
-                CarTuneService.SetPartOn(_working, _slot, idx, cb.Checked, respectConflicts: false);
+                CarTuneService.SetPartOn(_working, _slot, idx, cb.Checked, respectConflicts: false, menuMyCars: _menuMyCars);
                 _onChanged();
                 RefreshCategoryCountsOnly();
             };
@@ -360,7 +368,7 @@ public sealed class CarTuneForm : Form
                 AutoSize = true,
                 ForeColor = UiTheme.Text,
                 Font = UiTheme.UiFont(9.5f),
-                Checked = CarTuneService.IsUniqueOn(_working, _slot, info.UniqueIndex),
+                Checked = CarTuneService.IsUniqueOn(_working, _slot, info.UniqueIndex, _menuMyCars),
                 Margin = new Padding(0, 2, 0, 2),
                 Cursor = Cursors.Hand,
             };
@@ -368,7 +376,7 @@ public sealed class CarTuneForm : Form
             u.CheckedChanged += (_, _) =>
             {
                 if (_silent) return;
-                CarTuneService.SetUniqueOn(_working, _slot, ui, u.Checked);
+                CarTuneService.SetUniqueOn(_working, _slot, ui, u.Checked, _menuMyCars);
                 _onChanged();
                 RefreshCategoryCountsOnly();
             };
@@ -378,7 +386,7 @@ public sealed class CarTuneForm : Form
 
     private void RefreshCategoryCountsOnly()
     {
-        var s = CarTuneService.Read(_working, _slot);
+        var s = CarTuneService.Read(_working, _slot, _menuMyCars);
         int keep = _catList.SelectedIndex;
         _silent = true;
         for (int i = 0; i < CarTuneService.Categories.Length && i < _catList.Items.Count; i++)
@@ -390,7 +398,7 @@ public sealed class CarTuneForm : Form
         if (keep >= 0 && keep < _catList.Items.Count)
             _catList.SelectedIndex = keep;
         _perfSummary.Text =
-            $"Performance flags  {s.PerfInstalled}/{s.PerfTotal}   ·   Unique  {s.UniqueOn}/{s.UniqueTotal}   ·   Shop unlocks  {s.UnlocksOn}/{s.UnlocksTotal}   ·   {CarTuneService.LevelLabel(s.EstimatedLevel)}";
+            $"Performance flags  {s.PerfInstalled}/{s.PerfTotal}   ·   Unique  {s.UniqueOn}/{s.UniqueTotal}   ·   Shop unlocks  {(_menuMyCars ? "n/a" : $"{s.UnlocksOn}/{s.UnlocksTotal}")}   ·   {CarTuneService.LevelLabel(s.EstimatedLevel)}";
         _silent = false;
     }
 
@@ -474,7 +482,7 @@ public sealed class CarTuneForm : Form
         presetBtns.Controls.Add(UiTheme.Btn("Apply dyno", ApplySelectedPreset, primary: true));
         presetBtns.Controls.Add(UiTheme.Btn("Save dyno to library", () =>
         {
-            var p = TunePresetService.HarvestFromSlot(_working, _slot, _saveName);
+            var p = TunePresetService.HarvestFromSlot(_working, _slot, _saveName, _menuMyCars);
             ReloadPresets();
             SelectPreset(p);
             MessageBox.Show(this, $"Saved to library (user created):\n{p.DisplayLabel}", "Dyno library",
@@ -506,17 +514,17 @@ public sealed class CarTuneForm : Form
         {
             var z = new byte[NFSU2CustomCarSaves.Layout.DynoSetupSize];
             Array.Fill(z, (byte)100);
-            DynoService.WriteEvent(_working, _slot, _eventPick.SelectedIndex, z);
+            DynoService.WriteEvent(_working, _slot, _eventPick.SelectedIndex, z, _menuMyCars);
             LoadDynoEditorFromSlot();
             _onChanged();
         }));
         editBtns.Controls.Add(UiTheme.Btn("Copy all events", () =>
-            DynoService.CopyToClipboard(DynoService.Export(_working, _slot, _saveName))));
+            DynoService.CopyToClipboard(DynoService.Export(_working, _slot, _saveName, menuMyCars: _menuMyCars))));
         editBtns.Controls.Add(UiTheme.Btn("Paste all events", () =>
         {
             var pkg = DynoService.PasteFromClipboard()
                       ?? throw new InvalidOperationException("No dyno in clipboard.");
-            DynoService.Apply(_working, _slot, pkg);
+            DynoService.Apply(_working, _slot, pkg, _menuMyCars);
             LoadDynoEditorFromSlot();
             _onChanged();
         }));
@@ -626,9 +634,9 @@ public sealed class CarTuneForm : Form
     private void WriteField(int byteIndex, byte value)
     {
         int ev = Math.Max(0, _eventPick.SelectedIndex);
-        var setup = DynoService.ReadEvent(_working, _slot, ev);
+        var setup = DynoService.ReadEvent(_working, _slot, ev, _menuMyCars);
         setup[byteIndex] = value;
-        DynoService.WriteEvent(_working, _slot, ev, setup);
+        DynoService.WriteEvent(_working, _slot, ev, setup, _menuMyCars);
         _onChanged();
     }
 
@@ -638,7 +646,7 @@ public sealed class CarTuneForm : Form
         {
             _silent = true;
             int ev = Math.Max(0, _eventPick.SelectedIndex);
-            var setup = DynoService.ReadEvent(_working, _slot, ev);
+            var setup = DynoService.ReadEvent(_working, _slot, ev, _menuMyCars);
             foreach (var kv in _fieldBars)
             {
                 int v = setup[kv.Key];
@@ -740,7 +748,7 @@ public sealed class CarTuneForm : Form
             throw new InvalidOperationException("Select a dyno preset in the list.");
         bool upgrades = _includeUpgrades?.Checked ?? true;
         bool body = _copyBody?.Checked ?? false;
-        string what = TunePresetService.ApplyDyno(_working, _slot, p, upgrades, body);
+        string what = TunePresetService.ApplyDyno(_working, _slot, p, upgrades, body, _menuMyCars);
         LoadDynoEditorFromSlot();
         RefreshPerformance();
         _onChanged();
@@ -848,7 +856,7 @@ public sealed class CarTuneForm : Form
         btns.Controls.Add(UiTheme.Btn("Apply livery", ApplySelectedLivery, primary: true));
         btns.Controls.Add(UiTheme.Btn("Save livery to library", () =>
         {
-            var p = LiveryService.SaveToLibrary(_working, _slot, _saveName);
+            var p = LiveryService.SaveToLibrary(_working, _slot, _saveName, _menuMyCars);
             ReloadLiveries();
             SelectLivery(p);
             MessageBox.Show(this, $"Saved (user created):\n{p.DisplayLabel}", "Livery library",
@@ -863,7 +871,7 @@ public sealed class CarTuneForm : Form
 
     private void ReloadLiveries()
     {
-        _liverySlotStatus.Text = "This car: " + LiveryService.SummarizeSlot(_working, _slot);
+        _liverySlotStatus.Text = "This car: " + LiveryService.SummarizeSlot(_working, _slot, _menuMyCars);
         string want = _carHash == 0 ? "" : _carHash.ToString("X8");
         bool sameOnly = _liverySameCarOnly?.Checked != false;
         int keep = _liveries.SelectedIndex;
@@ -920,7 +928,7 @@ public sealed class CarTuneForm : Form
     {
         if (_liveries.SelectedItem is not LiveryPreset p)
             throw new InvalidOperationException("Select a livery in the list.");
-        string what = LiveryService.Apply(_working, _slot, p, SelectedLiveryMode());
+        string what = LiveryService.Apply(_working, _slot, p, SelectedLiveryMode(), _menuMyCars);
         _onChanged();
         ReloadLiveries();
         MessageBox.Show(this, $"Applied:\n{p.DisplayLabel}\n({what})", "Livery",

@@ -397,18 +397,33 @@ public sealed class BrowserSaveSession : IDisposable
 
     public CarTuneStats ReadTune(int slotIndex) => CarTuneService.Read(Working, slotIndex);
 
-    public void OpenTuneEditor(int slotIndex, IWin32Window owner, Action onChanged)
+    public void OpenTuneEditor(int slotIndex, IWin32Window owner, Action onChanged, bool menuMyCars = false)
     {
-        EnsureSlots10IfNeeded(slotIndex);
+        if (!menuMyCars) EnsureSlots10IfNeeded(slotIndex);
         using var f = new CarTuneForm(Working, slotIndex, () =>
         {
             Dirty = true;
             onChanged();
-        }, ProfileName);
+        }, ProfileName, menuMyCars);
         f.ShowDialog(owner);
     }
 
-    /// <summary>Ensure My Cars (slots 6–10 / GARAGE.DAT) exist in the working buffer.</summary>
+    public CarSlotPackage ExportMyCarPackage(int index) =>
+        MyCarsService.ExportPackage(Working, index, ProfileName);
+
+    public void ImportMyCarPackage(CarSlotPackage pkg, int index)
+    {
+        MyCarsService.ImportPackage(Working, index, pkg);
+        Dirty = true;
+    }
+
+    public void PlaceMyCarDonor(int index, CarDonor donor)
+    {
+        MyCarsService.PlaceDonor(Working, index, donor);
+        Dirty = true;
+    }
+
+    /// <summary>Ensure Career slots 6–10 (GARAGE.DAT body) exist in the working buffer.</summary>
     public void EnsureMyCarsGarage() => EnsureSlots10();
 
     private void EnsureSlots10()

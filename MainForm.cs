@@ -12,10 +12,17 @@ public sealed class MainForm : Form
     private readonly Label _status = new();
     private readonly Label _clipStatus = new();
     private readonly Label _dynoStatus = new();
+    private readonly Label _liveryStatus = new();
+    private readonly Label _slotHint = new();
     private readonly ToolTip _tip = new() { AutoPopDelay = 12000, InitialDelay = 350, ReshowDelay = 200, ShowAlways = true, OwnerDraw = true };
     private List<SlotInfo> _slotInfos = new();
+    private List<MyCarInfo> _myCarInfos = new();
+    /// <summary>False = Career garage 1–10; True = main-menu Customize → My Cars (20).</summary>
+    private bool _menuMyCars;
     private int _tipSlotsIndex = -2;
     private int _tipRackIndex = -2;
+    private Button? _btnAreaCareer;
+    private Button? _btnAreaMyCars;
     private readonly DropOverlay _dropOverlay = new();
     private StarfieldControl? _hero;
     private readonly ComboBox _flagPick = new();
@@ -115,13 +122,14 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 4,
+            RowCount = 5,
             Margin = new Padding(0),
         };
         mid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 56f));
         mid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44f));
         mid.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // titles
-        mid.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // buttons
+        mid.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // area tabs
+        mid.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // action buttons
         mid.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // hints
         mid.RowStyles.Add(new RowStyle(SizeType.Percent, 100f)); // lists
         content.Controls.Add(mid, 0, 2);
@@ -129,18 +137,35 @@ public sealed class MainForm : Form
         mid.Controls.Add(UiTheme.SectionHead("Car slots"), 0, 0);
         mid.Controls.Add(UiTheme.SectionHead("Save rack"), 1, 0);
 
+        // Tabs: Career garage vs in-game "Customize Car Select" (My Cars)
+        var areaTabs = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            WrapContents = true,
+            Margin = new Padding(0, 0, 0, 2),
+        };
+        _btnAreaCareer = UiTheme.Btn("Career garage", () => SetCarArea(menuMyCars: false), primary: true);
+        _btnAreaMyCars = UiTheme.Btn("Customize Car Select", () => SetCarArea(menuMyCars: true));
+        areaTabs.Controls.Add(T(_btnAreaCareer,
+            "Career garage slots 1–10 (profile + GARAGE.DAT)."));
+        areaTabs.Controls.Add(T(_btnAreaMyCars,
+            "In-game: Main menu → Customize → Customize Car Select (up to 20 tuned cars). Copy here, then paste into Career."));
+        mid.Controls.Add(areaTabs, 0, 1);
+
         var slotTop = new FlowLayoutPanel
         {
             AutoSize = true,
             WrapContents = true,
             Margin = new Padding(0, 0, 0, 4),
         };
-        slotTop.Controls.Add(T(UiTheme.Btn("Copy", CopySlot, true), "Copy the selected slot (Ctrl+C)."));
+        slotTop.Controls.Add(T(UiTheme.Btn("Copy", CopySlot, true), "Copy full car (body + dyno + livery + tune). Works on Career and Customize Car Select."));
         slotTop.Controls.Add(T(UiTheme.Btn("Paste", PasteSlot, true), "Paste the clipboard car into the selected slot (Ctrl+V)."));
-        slotTop.Controls.Add(T(UiTheme.Btn("Unlock", UnlockSelected), "Unlock the selected slot."));
+        slotTop.Controls.Add(T(UiTheme.Btn("Steal → Career…", StealCustomizeToCareer, accent: true),
+            "From Customize Car Select: copy this tuned car (dyno + livery + parts) straight into a Career garage slot."));
+        slotTop.Controls.Add(T(UiTheme.Btn("Unlock", UnlockSelected), "Unlock the selected Career slot (not used for Customize cars)."));
         slotTop.Controls.Add(T(UiTheme.Btn("Add car…", AddOrReplaceCar, info: true), "Place (or replace with) a stock in-game car."));
-        slotTop.Controls.Add(T(UiTheme.Btn("Tune…", OpenSelectedTune, accent: true), "Performance, dyno and livery for the selected slot (double-click also works)."));
-        mid.Controls.Add(slotTop, 0, 1);
+        slotTop.Controls.Add(T(UiTheme.Btn("Tune…", OpenSelectedTune, accent: true), "Performance, dyno and livery for Career or Customize (double-click also works)."));
+        mid.Controls.Add(slotTop, 0, 2);
 
         var rackTop = new FlowLayoutPanel
         {
@@ -149,12 +174,20 @@ public sealed class MainForm : Form
             Margin = new Padding(0, 0, 0, 4),
         };
         rackTop.Controls.Add(T(UiTheme.Btn("Clear rack", ClearRackSlot, danger: true), "Empty the selected rack slot."));
-        rackTop.Controls.Add(T(UiTheme.Btn("Slot ←", RackToSlot, true), "Rack → selected car slot."));
-        rackTop.Controls.Add(T(UiTheme.Btn("→ Rack", SlotToRack, true), "Selected car slot → rack."));
-        mid.Controls.Add(rackTop, 1, 1);
+        rackTop.Controls.Add(T(UiTheme.Btn("Slot ←", RackToSlot, true),
+            "Selected rack → selected car (Career garage or Customize Car Select)."));
+        rackTop.Controls.Add(T(UiTheme.Btn("→ Rack", SlotToRack, true),
+            "Selected car → selected rack slot. Works for Career and Customize Car Select."));
+        mid.Controls.Add(rackTop, 1, 2);
 
-        mid.Controls.Add(UiTheme.Muted("Slots 1–10 · double-click = tune", 420), 0, 2);
-        mid.Controls.Add(UiTheme.Muted("125 slots · stored locally", 360), 1, 2);
+        _slotHint.AutoSize = true;
+        _slotHint.ForeColor = UiTheme.TextMuted;
+        _slotHint.Font = UiTheme.UiFont(8.5f);
+        _slotHint.Margin = new Padding(0, 0, 0, 2);
+        _slotHint.MaximumSize = new Size(520, 0);
+        _slotHint.Text = "Career garage 1–10 · double-click = tune";
+        mid.Controls.Add(_slotHint, 0, 3);
+        mid.Controls.Add(UiTheme.Muted("125 rack slots · pick one, then → Rack / Slot ←", 360), 1, 3);
 
         UiTheme.StyleList(_slots);
         UiTheme.StyleList(_rackList);
@@ -167,8 +200,8 @@ public sealed class MainForm : Form
         };
         _rackList.MouseMove += (_, e) => HoverTip(_rackList, e, isRack: true);
         _rackList.MouseLeave += (_, _) => { _tipRackIndex = -2; _tip.Hide(_rackList); };
-        mid.Controls.Add(UiTheme.Card(_slots, new Padding(6)), 0, 3);
-        mid.Controls.Add(UiTheme.Card(_rackList, new Padding(6)), 1, 3);
+        mid.Controls.Add(UiTheme.Card(_slots, new Padding(6)), 0, 4);
+        mid.Controls.Add(UiTheme.Card(_rackList, new Padding(6)), 1, 4);
 
         // ── More tools + status ──
         var bottom = new TableLayoutPanel
@@ -180,9 +213,11 @@ public sealed class MainForm : Form
         };
         bottom.Controls.Add(UiTheme.SectionHead("More tools"));
         var tools = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Margin = new Padding(0, 0, 0, 6) };
-        tools.Controls.Add(T(UiTheme.Btn("Apply dyno…", ApplyPresetQuick, true), "Apply a saved dyno preset to the selected slot."));
-        tools.Controls.Add(T(UiTheme.Btn("Copy dyno", CopyDyno), "Copy the dyno of the selected slot."));
-        tools.Controls.Add(T(UiTheme.Btn("Paste dyno", PasteDyno), "Paste the copied dyno onto the selected slot."));
+        tools.Controls.Add(T(UiTheme.Btn("Apply dyno…", ApplyPresetQuick, true), "Apply a saved dyno preset to Career or Customize Car Select."));
+        tools.Controls.Add(T(UiTheme.Btn("Copy dyno", CopyDyno), "Copy dyno from Career or Customize Car Select."));
+        tools.Controls.Add(T(UiTheme.Btn("Paste dyno", PasteDyno), "Paste dyno onto Career or Customize Car Select."));
+        tools.Controls.Add(T(UiTheme.Btn("Copy livery", CopyLivery), "Copy paint/vinyl/decals/neon from Career or Customize Car Select."));
+        tools.Controls.Add(T(UiTheme.Btn("Paste livery", PasteLivery), "Paste livery onto Career or Customize Car Select."));
         tools.Controls.Add(T(UiTheme.Btn("Import .carslot", ImportCarslot), "Import a .carslot file into the selected slot."));
         tools.Controls.Add(T(UiTheme.Btn("Export .carslot", ExportCarslot), "Export the selected slot as a .carslot file."));
         tools.Controls.Add(T(UiTheme.Btn("Copy from save…", CopyFromSave), "Copy a slot from another career save."));
@@ -200,9 +235,13 @@ public sealed class MainForm : Form
         _dynoStatus.AutoSize = true;
         _dynoStatus.ForeColor = UiTheme.TextMuted;
         _dynoStatus.Text = DynoService.Summarize(null);
+        _liveryStatus.AutoSize = true;
+        _liveryStatus.ForeColor = UiTheme.TextMuted;
+        _liveryStatus.Text = LiveryService.SummarizeClipboard(null);
         bottom.Controls.Add(_status);
         bottom.Controls.Add(_clipStatus);
         bottom.Controls.Add(_dynoStatus);
+        bottom.Controls.Add(_liveryStatus);
         content.Controls.Add(bottom, 0, 3);
 
         Controls.Add(_dropOverlay);
@@ -444,10 +483,12 @@ public sealed class MainForm : Form
         _session = null;
         SlotClipboard.ClearMemory();
         DynoService.ClearClipboard();
+        LiveryService.ClearClipboard();
         RefreshSlots();
         RefreshRack();
         UpdateClipStatus();
         UpdateDynoStatus();
+        UpdateLiveryStatus();
         SetStatus("Fresh start — drop a zip / Open… · slots empty until you load a save.");
     }
 
@@ -697,36 +738,83 @@ public sealed class MainForm : Form
         _status.ForeColor = UiTheme.Success;
     }
 
+    private void SetCarArea(bool menuMyCars)
+    {
+        _menuMyCars = menuMyCars;
+        if (_btnAreaCareer is GlowButton gCareer)
+            gCareer.Kind = menuMyCars ? GlowKind.Default : GlowKind.Primary;
+        if (_btnAreaMyCars is GlowButton gMy)
+            gMy.Kind = menuMyCars ? GlowKind.Primary : GlowKind.Default;
+
+        _slotHint.Text = menuMyCars
+            ? "Customize Car Select (1–20) · Copy a car → switch Career garage → Paste"
+            : "Career garage 1–10 · Paste cars stolen from Customize Car Select here";
+        UpdateDynoStatus();
+        RefreshSlots();
+        if (_session != null && menuMyCars)
+        {
+            int filled = _myCarInfos.Count(c => c.IsOccupied);
+            SetStatus($"Customize Car Select — {filled} tuned car(s) in this save (main menu Customize)");
+        }
+    }
+
     private void RefreshSlots()
     {
         int keep = _slots.SelectedIndex;
         _slots.Items.Clear();
-        _slotInfos = _session?.Slots() ?? new List<SlotInfo>();
         byte[]? working = _session?.Working;
-        foreach (var s in _slotInfos)
+
+        if (_menuMyCars)
         {
-            string name = CarNames.ListLabel(s.CarHash, s.IsOccupied, s.IsLocked);
-            string state = s.IsLocked && !s.IsOccupied ? "Locked"
-                : s.IsOccupied ? "Filled"
-                : "Open";
-            if (!s.IsOccupied && !s.IsLocked)
-                name = "(empty)";
-
-            string stats = "";
-            if (working != null && s.IsOccupied)
+            _myCarInfos = working != null ? MyCarsService.ReadAll(working) : new List<MyCarInfo>();
+            _slotInfos = new List<SlotInfo>();
+            foreach (var c in _myCarInfos)
             {
-                try
+                string name = c.IsOccupied ? c.DisplayName : "(empty)";
+                string state = c.IsOccupied ? "Filled" : "Open";
+                string stats = "";
+                if (working != null && c.IsOccupied)
                 {
-                    var t = CarTuneService.Read(working, s.Index);
-                    stats = $"  ·  {t.PerfInstalled}/{t.PerfTotal} perf  ·  {t.UniqueOn}/{t.UniqueTotal} uniq  ·  {t.UnlocksOn}/{t.UnlocksTotal} unlock";
+                    try
+                    {
+                        var t = CarTuneService.Read(working, c.Index, menuMyCars: true);
+                        stats = $"  ·  {t.PerfInstalled}/{t.PerfTotal} perf  ·  {t.UniqueOn}/{t.UniqueTotal} uniq";
+                    }
+                    catch { /* skip */ }
                 }
-                catch { /* slot out of range */ }
+                _slots.Items.Add($"Customize {c.Index + 1,2}  {state,-6}  {name}{stats}");
             }
-
-            // Career = slots 1–5 (profile hex). My Cars = slots 6–10 (GARAGE.DAT body).
-            string group = s.Index < NFSU2CustomCarSaves.Layout.CareerSlotCount ? "Career" : "My Cars";
-            _slots.Items.Add($"{group} {s.Index + 1}  {state,-6}  {name}{stats}");
         }
+        else
+        {
+            _myCarInfos = new List<MyCarInfo>();
+            _slotInfos = _session?.Slots() ?? new List<SlotInfo>();
+            foreach (var s in _slotInfos)
+            {
+                string name = CarNames.ListLabel(s.CarHash, s.IsOccupied, s.IsLocked);
+                string state = s.IsLocked && !s.IsOccupied ? "Locked"
+                    : s.IsOccupied ? "Filled"
+                    : "Open";
+                if (!s.IsOccupied && !s.IsLocked)
+                    name = "(empty)";
+
+                string stats = "";
+                if (working != null && s.IsOccupied)
+                {
+                    try
+                    {
+                        var t = CarTuneService.Read(working, s.Index);
+                        stats = $"  ·  {t.PerfInstalled}/{t.PerfTotal} perf  ·  {t.UniqueOn}/{t.UniqueTotal} uniq  ·  {t.UnlocksOn}/{t.UnlocksTotal} unlock";
+                    }
+                    catch { /* slot out of range */ }
+                }
+
+                // Slots 1–5 = career profile; 6–10 = GARAGE.DAT body (still Career garage, not Customize Car Select).
+                string group = s.Index < NFSU2CustomCarSaves.Layout.CareerSlotCount ? "Career" : "Career+";
+                _slots.Items.Add($"{group} {s.Index + 1}  {state,-6}  {name}{stats}");
+            }
+        }
+
         if (_slots.Items.Count == 0) return;
         _slots.SelectedIndex = keep >= 0 && keep < _slots.Items.Count ? keep : 0;
         _tipSlotsIndex = -2;
@@ -757,15 +845,26 @@ public sealed class MainForm : Form
         {
             if (idx == _tipSlotsIndex) return;
             _tipSlotsIndex = idx;
-            if (idx < 0 || idx >= _slotInfos.Count) { _tip.Hide(lb); return; }
-            var s = _slotInfos[idx];
-            string state = s.IsLocked
-                ? "Locked — Unlock first"
-                : s.IsOccupied ? "Filled" : "Empty — Add car / Paste / .carslot";
-            string group = s.Index < NFSU2CustomCarSaves.Layout.CareerSlotCount
-                ? "Career (profile)"
-                : "My Cars (GARAGE.DAT / menu garage)";
-            _tip.SetToolTip(lb, CarNames.Tooltip(s.CarHash, $"{group}\nSlot {s.Index + 1} of 10\nState: {state}"));
+            if (_menuMyCars)
+            {
+                if (idx < 0 || idx >= _myCarInfos.Count) { _tip.Hide(lb); return; }
+                var c = _myCarInfos[idx];
+                string state = c.IsOccupied ? "Filled" : "Empty — Add car / Paste / .carslot";
+                _tip.SetToolTip(lb, CarNames.Tooltip(c.CarHash,
+                    $"Customize Car Select (main menu)\nSlot {c.Index + 1} of 20\nState: {state}\nCopy → Career garage → Paste"));
+            }
+            else
+            {
+                if (idx < 0 || idx >= _slotInfos.Count) { _tip.Hide(lb); return; }
+                var s = _slotInfos[idx];
+                string state = s.IsLocked
+                    ? "Locked — Unlock first"
+                    : s.IsOccupied ? "Filled" : "Empty — Add car / Paste / .carslot";
+                string group = s.Index < NFSU2CustomCarSaves.Layout.CareerSlotCount
+                    ? "Career (profile)"
+                    : "Career+ (GARAGE.DAT slots 6–10)";
+                _tip.SetToolTip(lb, CarNames.Tooltip(s.CarHash, $"{group}\nSlot {s.Index + 1} of 10\nState: {state}"));
+            }
         }
     }
 
@@ -780,18 +879,23 @@ public sealed class MainForm : Form
     private void UpdateDynoStatus()
     {
         _dynoStatus.Text = DynoService.Summarize(DynoService.ClipboardPkg)
-            + "  ·  Copy/Paste dyno works on Career (1–5) and My Cars (6–10)";
+            + "  ·  Career + Customize Car Select";
+    }
+
+    private void UpdateLiveryStatus()
+    {
+        _liveryStatus.Text = LiveryService.SummarizeClipboard(LiveryService.ClipboardPkg)
+            + "  ·  Career + Customize Car Select";
     }
 
     private void CopyDyno()
     {
         int src = SelectedSlot();
         EnsureSlotDynoReadable(src);
-        var pkg = DynoService.Export(_session!.Working, src);
+        var pkg = DynoService.Export(_session!.Working, src, menuMyCars: _menuMyCars);
         DynoService.CopyToClipboard(pkg);
         UpdateDynoStatus();
-        string group = src < NFSU2CustomCarSaves.Layout.CareerSlotCount ? "Career" : "My Cars";
-        SetStatus($"Dyno copied: {pkg.SourceCar} ({group} slot {src + 1}) — paste on Career or My Cars");
+        SetStatus($"Dyno copied: {pkg.SourceCar} ({AreaLabel(src)}) — paste on Career or Customize");
     }
 
     private void PasteDyno()
@@ -800,17 +904,83 @@ public sealed class MainForm : Form
         EnsureSlotDynoReadable(dst);
         var pkg = DynoService.PasteFromClipboard()
                   ?? throw new InvalidOperationException("No dyno copied — use Copy dyno first.");
-        DynoService.Apply(_session!.Working, dst, pkg);
+        DynoService.Apply(_session!.Working, dst, pkg, _menuMyCars);
         _session.Dirty = true;
         RefreshSlots();
         UpdateDynoStatus();
-        string group = dst < NFSU2CustomCarSaves.Layout.CareerSlotCount ? "Career" : "My Cars";
-        SetStatus($"Dyno pasted → {group} slot {dst + 1} (source: {pkg.SourceCar})");
+        SetStatus($"Dyno pasted → {AreaLabel(dst)} (source: {pkg.SourceCar})");
     }
 
-    /// <summary>My Cars (6–10) live in GARAGE.DAT — create/attach if the buffer is career-only.</summary>
+    private void CopyLivery()
+    {
+        int src = SelectedSlot();
+        EnsureSlotDynoReadable(src);
+        var pkg = LiveryService.ExportToClipboard(
+            _session!.Working, src, _session.ProfileName, _menuMyCars);
+        UpdateLiveryStatus();
+        SetStatus($"Livery copied: {pkg.CarName} ({AreaLabel(src)}) — paste on Career or Customize");
+    }
+
+    private void PasteLivery()
+    {
+        int dst = SelectedSlot();
+        EnsureSlotDynoReadable(dst);
+        var pkg = LiveryService.PasteFromClipboard()
+                  ?? throw new InvalidOperationException("No livery copied — use Copy livery first.");
+        string what = LiveryService.Apply(_session!.Working, dst, pkg, LiveryApplyMode.Replace, _menuMyCars);
+        _session.Dirty = true;
+        RefreshSlots();
+        UpdateLiveryStatus();
+        SetStatus($"Livery pasted → {AreaLabel(dst)} ({what})");
+    }
+
+    /// <summary>One-shot: Customize Car Select → Career garage (full car: dyno + livery + tune).</summary>
+    private void StealCustomizeToCareer()
+    {
+        if (_session == null) throw new InvalidOperationException("Open a save first.");
+        if (!_menuMyCars)
+            throw new InvalidOperationException(
+                "Switch to Customize Car Select first, pick a tuned car, then Steal → Career…");
+
+        int src = SelectedSlot();
+        var info = MyCarsService.Read(_session.Working, src);
+        if (!info.IsOccupied)
+            throw new InvalidOperationException("That Customize slot is empty.");
+
+        string? raw = Prompt($"Paste {info.DisplayName} into Career slot (1–10):", "1");
+        if (raw == null) return;
+        if (!int.TryParse(raw.Trim(), out int dstHuman) || dstHuman < 1 || dstHuman > 10)
+            throw new InvalidOperationException("Invalid Career slot (use 1–10).");
+        int dst = dstHuman - 1;
+
+        var existing = GarageDatService.ReadSlot(_session.Working, dst);
+        if (existing.IsOccupied)
+        {
+            if (MessageBox.Show(this,
+                    $"Overwrite Career {dstHuman} ({existing.DisplayName}) with\n{info.DisplayName} from Customize?\n\n" +
+                    "Full car: body, dyno, livery, performance.",
+                    "Steal → Career", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+        }
+
+        var pkg = _session.ExportMyCarPackage(src);
+        SlotClipboard.Copy(pkg);
+        _session.ImportPackage(pkg, dst);
+        SetCarArea(menuMyCars: false);
+        _slots.SelectedIndex = Math.Clamp(dst, 0, Math.Max(0, _slots.Items.Count - 1));
+        UpdateClipStatus();
+        SetOk($"Stolen Customize {src + 1} → Career {dstHuman}: {pkg.CarName} (dyno + livery + tune)");
+    }
+
+    /// <summary>Career+ slots 6–10 live in GARAGE.DAT — create/attach if the buffer is career-only.</summary>
     private void EnsureSlotDynoReadable(int slot)
     {
+        if (_menuMyCars)
+        {
+            if (!MyCarsService.BufferHasMyCars(_session!.Working))
+                throw new InvalidOperationException("This save has no My Cars (menu Customize) block.");
+            return;
+        }
         if (slot < NFSU2CustomCarSaves.Layout.CareerSlotCount) return;
         int need = NFSU2CustomCarSaves.Layout.ExtraSlotRecordBase
                    + NFSU2CustomCarSaves.Layout.CareerSlotCount * NFSU2CustomCarSaves.Layout.SlotStride;
@@ -819,14 +989,26 @@ public sealed class MainForm : Form
         RefreshSlots();
         if (_session.Working.Length < need)
             throw new InvalidOperationException(
-                "My Cars (slots 6–10) need GARAGE.DAT. Open a browser zip that includes it.");
+                "Career slots 6–10 need GARAGE.DAT. Open a browser zip that includes it.");
     }
 
     private void ApplyPresetQuick()
     {
         int slot = SelectedSlot();
-        var info = GarageDatService.ReadSlot(_session!.Working, slot);
-        uint carHash = info.CarHash;
+        string carName;
+        uint carHash;
+        if (_menuMyCars)
+        {
+            var mc = MyCarsService.Read(_session!.Working, slot);
+            carName = mc.DisplayName;
+            carHash = mc.CarHash;
+        }
+        else
+        {
+            var info = GarageDatService.ReadSlot(_session!.Working, slot);
+            carName = info.DisplayName;
+            carHash = info.CarHash;
+        }
         string want = carHash == 0 ? "" : carHash.ToString("X8");
         var all = TunePresetService.LoadDynoPresets(refresh: true);
         var presets = carHash == 0
@@ -839,11 +1021,11 @@ public sealed class MainForm : Form
                 "No dyno presets yet. Open a save (auto-harvest) or save a car from Tune → Dyno.");
         if (presets.Count == 0)
             throw new InvalidOperationException(
-                $"No dyno presets for {info.DisplayName} yet. Open a save with that model, or save this car from Tune → Dyno.");
+                $"No dyno presets for {carName} yet. Open a save with that model, or save this car from Tune → Dyno.");
 
         using var f = new Form
         {
-            Text = carHash == 0 ? "Apply dyno preset" : $"Apply dyno preset — {info.DisplayName}",
+            Text = carHash == 0 ? "Apply dyno preset" : $"Apply dyno preset — {carName}",
             Width = 620,
             Height = 500,
             StartPosition = FormStartPosition.CenterParent,
@@ -856,7 +1038,7 @@ public sealed class MainForm : Form
         var tip = UiTheme.Muted(
             carHash == 0
                 ? "Showing all presets (empty slot). Label shows where the tune came from. Vinyl/livery is never overwritten."
-                : $"Only presets for {info.DisplayName}. Vinyl/livery is never overwritten.",
+                : $"Only presets for {carName}. Vinyl/livery is never overwritten.",
             580);
         tip.Dock = DockStyle.Top;
         tip.Padding = new Padding(8, 8, 8, 4);
@@ -913,12 +1095,13 @@ public sealed class MainForm : Form
         void DoApply()
         {
             if (list.SelectedItem is not TunePreset p) return;
-            string what = TunePresetService.ApplyDyno(_session!.Working, slot, p, upgrades.Checked, copyBody.Checked);
+            string what = TunePresetService.ApplyDyno(
+                _session!.Working, slot, p, upgrades.Checked, copyBody.Checked, _menuMyCars);
             _session.Dirty = true;
             f.DialogResult = DialogResult.OK;
             f.Close();
             RefreshSlots();
-            SetStatus($"Dyno → slot {slot + 1}: {p.DisplayLabel} ({what})");
+            SetStatus($"Dyno → {AreaLabel(slot)}: {p.DisplayLabel} ({what})");
         }
 
         var bar = new FlowLayoutPanel
@@ -945,8 +1128,20 @@ public sealed class MainForm : Form
     {
         if (_session == null) throw new InvalidOperationException("Open a save first.");
         if (_slots.SelectedIndex < 0) throw new InvalidOperationException("Select a save slot on the left.");
-        return _slots.SelectedIndex;
+        if (_menuMyCars)
+        {
+            if (_slots.SelectedIndex >= _myCarInfos.Count)
+                throw new InvalidOperationException("Select a My Cars slot.");
+            return _myCarInfos[_slots.SelectedIndex].Index;
+        }
+        if (_slots.SelectedIndex >= _slotInfos.Count)
+            throw new InvalidOperationException("Select a Career slot.");
+        return _slotInfos[_slots.SelectedIndex].Index;
     }
+
+    private string AreaLabel(int slot) =>
+        _menuMyCars ? $"Customize {slot + 1}"
+        : slot < NFSU2CustomCarSaves.Layout.CareerSlotCount ? $"Career {slot + 1}" : $"Career+ {slot + 1}";
 
     private int SelectedRack()
     {
@@ -957,10 +1152,12 @@ public sealed class MainForm : Form
     private void CopySlot()
     {
         int src = SelectedSlot();
-        var pkg = _session!.ExportPackage(src, _session.ProfileName);
+        var pkg = _menuMyCars
+            ? _session!.ExportMyCarPackage(src)
+            : _session!.ExportPackage(src, _session.ProfileName);
         SlotClipboard.Copy(pkg);
         UpdateClipStatus();
-        SetOk($"Copied: slot {src + 1} — {pkg.CarName}");
+        SetOk($"Copied: {AreaLabel(src)} — {pkg.CarName}");
     }
 
     private void PasteSlot()
@@ -968,17 +1165,20 @@ public sealed class MainForm : Form
         int dst = SelectedSlot();
         var pkg = SlotClipboard.Paste()
                   ?? throw new InvalidOperationException("Clipboard is empty — copy a slot first.");
-        _session!.ImportPackage(pkg, dst);
+        if (_menuMyCars) _session!.ImportMyCarPackage(pkg, dst);
+        else _session!.ImportPackage(pkg, dst);
         RefreshSlots();
         UpdateClipStatus();
-        SetOk($"Pasted → slot {dst + 1}: {pkg.CarName}");
+        SetOk($"Pasted → {AreaLabel(dst)}: {pkg.CarName}");
     }
 
     private void SlotToRack()
     {
         int src = SelectedSlot();
         int rack = SelectedRack();
-        var pkg = _session!.ExportPackage(src, _session.ProfileName);
+        var pkg = _menuMyCars
+            ? _session!.ExportMyCarPackage(src)
+            : _session!.ExportPackage(src, _session.ProfileName);
         if (_rack.Get(rack) != null)
         {
             if (MessageBox.Show(this, $"Overwrite rack R{rack + 1}?", Text,
@@ -987,7 +1187,7 @@ public sealed class MainForm : Form
         }
         _rack.Set(rack, pkg);
         RefreshRack();
-        SetOk($"Slot {src + 1} → rack R{rack + 1} ({pkg.CarName})");
+        SetOk($"{AreaLabel(src)} → rack R{rack + 1} ({pkg.CarName})");
     }
 
     private void RackToSlot()
@@ -996,9 +1196,10 @@ public sealed class MainForm : Form
         int dst = SelectedSlot();
         var pkg = _rack.Get(rack)
                   ?? throw new InvalidOperationException($"Rack R{rack + 1} is empty.");
-        _session!.ImportPackage(pkg, dst);
+        if (_menuMyCars) _session!.ImportMyCarPackage(pkg, dst);
+        else _session!.ImportPackage(pkg, dst);
         RefreshSlots();
-        SetOk($"Rack R{rack + 1} → slot {dst + 1}: {pkg.CarName}");
+        SetOk($"Rack R{rack + 1} → {AreaLabel(dst)}: {pkg.CarName}");
     }
 
     private void ClearRackSlot()
@@ -1023,9 +1224,10 @@ public sealed class MainForm : Form
         };
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
         var pkg = CarSlotIo.Load(dlg.FileName);
-        _session!.ImportPackage(pkg, dst);
+        if (_menuMyCars) _session!.ImportMyCarPackage(pkg, dst);
+        else _session!.ImportPackage(pkg, dst);
         RefreshSlots();
-        SetOk($"Imported → slot {dst + 1}: {pkg.CarName}");
+        SetOk($"Imported → {AreaLabel(dst)}: {pkg.CarName}");
     }
 
     private void CopyFromSave()
@@ -1039,20 +1241,49 @@ public sealed class MainForm : Form
         };
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
 
-        string? raw = Prompt("Source slot number (1–10):", "1");
+        string? raw = Prompt(
+            _menuMyCars
+                ? "Source Career slot (1–10) to copy into My Cars:"
+                : "Source slot number (1–10):",
+            "1");
         if (raw == null) return;
         if (!int.TryParse(raw.Trim(), out int srcHuman) || srcHuman < 1 || srcHuman > 10)
             throw new InvalidOperationException("Invalid slot number.");
 
-        _session!.CopyFromCareerFile(dlg.FileName, srcHuman - 1, dst);
+        if (_menuMyCars)
+        {
+            // Steal Career → My Cars: read source TunedCar, write menu block.
+            byte[] other = File.ReadAllBytes(dlg.FileName);
+            string? otherGarage = Path.Combine(Path.GetDirectoryName(dlg.FileName)!, "GARAGE.DAT");
+            byte[] srcBuf = other;
+            if (File.Exists(otherGarage))
+            {
+                var g = File.ReadAllBytes(otherGarage);
+                var st = GarageDatService.Check(g, other);
+                if (st.State == GarageState.Loaded)
+                    srcBuf = GarageDatService.Merge(other, g, GarageState.Loaded);
+            }
+            GarageDatService.ReadRecord(srcBuf, srcHuman - 1, out var tuned, out _);
+            uint hash = BitConverter.ToUInt32(tuned, NFSU2CustomCarSaves.Layout.CarHashInTuned);
+            if (tuned[NFSU2CustomCarSaves.Layout.BoughtInTuned] != 1 || hash == 0)
+                throw new InvalidOperationException("Source slot is empty.");
+            MyCarsService.WriteTuned(_session!.Working, dst, tuned);
+            _session.Dirty = true;
+        }
+        else
+        {
+            _session!.CopyFromCareerFile(dlg.FileName, srcHuman - 1, dst);
+        }
         RefreshSlots();
-        SetOk($"Copied from slot {srcHuman} → slot {dst + 1}");
+        SetOk($"Copied from Career {srcHuman} → {AreaLabel(dst)}");
     }
 
     private void ExportCarslot()
     {
         int src = SelectedSlot();
-        var pkg = _session!.ExportPackage(src, _session.ProfileName);
+        var pkg = _menuMyCars
+            ? _session!.ExportMyCarPackage(src)
+            : _session!.ExportPackage(src, _session.ProfileName);
         using var dlg = new SaveFileDialog
         {
             Filter = "Car slot (*.carslot.json)|*.carslot.json",
@@ -1066,6 +1297,11 @@ public sealed class MainForm : Form
 
     private void UnlockSelected()
     {
+        if (_menuMyCars)
+        {
+            SetStatus("Unlock is for Career slots — My Cars has no lock flag.");
+            return;
+        }
         int i = SelectedSlot();
         _session!.Unlock(i);
         RefreshSlots();
@@ -1076,23 +1312,36 @@ public sealed class MainForm : Form
     {
         if (_session == null) throw new InvalidOperationException("Open a save first.");
         int slot = SelectedSlot();
-        var info = GarageDatService.ReadSlot(_session.Working, slot);
-        bool replace = info.IsOccupied;
-        using var dlg = new AddCarForm(replace, info.DisplayName);
+        string display;
+        bool replace;
+        if (_menuMyCars)
+        {
+            var mc = MyCarsService.Read(_session.Working, slot);
+            display = mc.DisplayName;
+            replace = mc.IsOccupied;
+        }
+        else
+        {
+            var info = GarageDatService.ReadSlot(_session.Working, slot);
+            display = info.DisplayName;
+            replace = info.IsOccupied;
+        }
+        using var dlg = new AddCarForm(replace, display);
         if (dlg.ShowDialog(this) != DialogResult.OK || dlg.Selected == null) return;
 
         if (replace)
         {
             if (MessageBox.Show(this,
-                    $"Replace {info.DisplayName} in slot {slot + 1} with:\n{dlg.Selected.Name}?\n\n" +
-                    "Stock body is written. Dyno region is kept if present — open Tune for dyno/livery after.",
+                    $"Replace {display} in {AreaLabel(slot)} with:\n{dlg.Selected.Name}?\n\n" +
+                    "Stock body is written. Dyno region resets to midpoint — open Tune for dyno/livery after.",
                     "Replace car", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
         }
 
-        _session.PlaceDonorCar(slot, dlg.Selected);
+        if (_menuMyCars) _session.PlaceMyCarDonor(slot, dlg.Selected);
+        else _session.PlaceDonorCar(slot, dlg.Selected);
         RefreshSlots();
-        SetStatus($"{(replace ? "Replaced" : "Added")} → slot {slot + 1}: {dlg.Selected.Name}");
+        SetStatus($"{(replace ? "Replaced" : "Added")} → {AreaLabel(slot)}: {dlg.Selected.Name}");
     }
 
     private void OpenSelectedTune()
@@ -1101,8 +1350,8 @@ public sealed class MainForm : Form
         _session!.OpenTuneEditor(i, this, () =>
         {
             RefreshSlots();
-            SetStatus($"Slot {i + 1} updated — don't forget Save zip…");
-        });
+            SetStatus($"{AreaLabel(i)} updated — don't forget Save zip…");
+        }, _menuMyCars);
         RefreshSlots();
     }
 

@@ -21,7 +21,7 @@ public sealed class GalaxyGuideForm : Form
     private static readonly string[] Steps =
     [
         "Set Name + Flag (your nfsu2.xyz player name / free-roam flag), then Start or Open.",
-        "Edit slots 1–10: Add car, Tune, Copy / Paste, rack.",
+        "Customize Car Select: Copy dyno / livery / full car, or Steal → Career (tune+dyno+livery).",
         "Optional: 100% Save unlocks shop/career without touching your cars.",
         "Save zip… — name, flag, GARAGE.DAT + settings for nfsu2.xyz.",
         "On nfsu2.xyz → Restore a backup (not “Add profile”).",

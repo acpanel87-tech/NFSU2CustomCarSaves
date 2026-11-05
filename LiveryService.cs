@@ -226,12 +226,26 @@ public static class LiveryService
         return total;
     }
 
-    public static LiveryPreset CaptureFromSlot(byte[] working, int slot, string saveName, string verified = "user")
+    public static LiveryPreset CaptureFromSlot(byte[] working, int slot, string saveName, string verified = "user", bool menuMyCars = false)
     {
-        var info = GarageDatService.ReadSlot(working, slot);
-        if (!info.IsOccupied) throw new InvalidOperationException("Slot has no car.");
+        string carName;
+        uint carHash;
+        if (menuMyCars)
+        {
+            var mc = MyCarsService.Read(working, slot);
+            if (!mc.IsOccupied) throw new InvalidOperationException("My Cars slot has no car.");
+            carName = mc.DisplayName;
+            carHash = mc.CarHash;
+        }
+        else
+        {
+            var info = GarageDatService.ReadSlot(working, slot);
+            if (!info.IsOccupied) throw new InvalidOperationException("Slot has no car.");
+            carName = info.DisplayName;
+            carHash = info.CarHash;
+        }
 
-        byte[] graphics = ReadGraphics(working, slot);
+        byte[] graphics = ReadGraphics(working, slot, menuMyCars);
         var stats = SummarizeGraphics(graphics);
         if (stats.TotalSet == 0)
             throw new InvalidOperationException("This car has no paint / vinyl / decals / window / neon to save.");
@@ -239,9 +253,9 @@ public static class LiveryService
         var preset = new LiveryPreset
         {
             Id = ShortId(Convert.ToHexString(graphics)),
-            Name = string.IsNullOrWhiteSpace(saveName) ? info.DisplayName : saveName.Trim(),
-            CarName = info.DisplayName,
-            CarHash = info.CarHash.ToString("X8"),
+            Name = string.IsNullOrWhiteSpace(saveName) ? carName : saveName.Trim(),
+            CarName = carName,
+            CarHash = carHash.ToString("X8"),
             SaveName = string.IsNullOrWhiteSpace(saveName) ? "save" : saveName.Trim(),
             Slot = slot + 1,
             GraphicsHex = Convert.ToHexString(graphics),
@@ -253,9 +267,9 @@ public static class LiveryService
         return preset;
     }
 
-    public static LiveryPreset SaveToLibrary(byte[] working, int slot, string saveName)
+    public static LiveryPreset SaveToLibrary(byte[] working, int slot, string saveName, bool menuMyCars = false)
     {
-        var preset = CaptureFromSlot(working, slot, saveName, "user");
+        var preset = CaptureFromSlot(working, slot, saveName, "user", menuMyCars);
         var lib = LoadLibraryMutable();
         string key = ContentKey(preset);
         lib.Presets.RemoveAll(p => ContentKey(p) == key);
@@ -301,6 +315,19 @@ public static class LiveryService
             }
             catch { /* empty graphics or bad slot */ }
         }
+        foreach (var c in MyCarsService.ReadAll(working))
+        {
+            if (!c.IsOccupied) continue;
+            try
+            {
+                var preset = CaptureFromSlot(working, c.Index, saveName + " / My Cars", verified, menuMyCars: true);
+                string key = ContentKey(preset);
+                if (!existing.Add(key)) continue;
+                lib.Presets.Insert(0, preset);
+                added++;
+            }
+            catch { /* empty graphics or bad slot */ }
+        }
         if (added > 0)
         {
             CompactPresetsInPlace(lib.Presets);
@@ -310,15 +337,28 @@ public static class LiveryService
         return added;
     }
 
-    public static string Apply(byte[] working, int slot, LiveryPreset preset, LiveryApplyMode mode)
+    public static string Apply(byte[] working, int slot, LiveryPreset preset, LiveryApplyMode mode, bool menuMyCars = false)
     {
-        var info = GarageDatService.ReadSlot(working, slot);
-        if (!info.IsOccupied)
+        uint carHash;
+        bool occupied;
+        if (menuMyCars)
+        {
+            var mc = MyCarsService.Read(working, slot);
+            occupied = mc.IsOccupied;
+            carHash = mc.CarHash;
+        }
+        else
+        {
+            var info = GarageDatService.ReadSlot(working, slot);
+            occupied = info.IsOccupied;
+            carHash = info.CarHash;
+        }
+        if (!occupied)
             throw new InvalidOperationException("Target slot has no car.");
 
         NormalizePreset(preset);
         byte[] src = ResolveGraphics(preset);
-        byte[] dst = ReadGraphics(working, slot);
+        byte[] dst = ReadGraphics(working, slot, menuMyCars);
 
         // Vinyl layers are atomic: each layer hash (64–67) moves with its 4 colours (77–92).
         var vinylTouched = new bool[GraphicsSlots.Length];
@@ -349,7 +389,7 @@ public static class LiveryService
             }
         }
 
-        WriteGraphics(working, slot, dst);
+        WriteGraphics(working, slot, dst, menuMyCars);
 
         var parts = new List<string>
         {
@@ -361,7 +401,7 @@ public static class LiveryService
 
         bool sameCar = !string.IsNullOrWhiteSpace(preset.CarHash) &&
                        uint.TryParse(preset.CarHash, System.Globalization.NumberStyles.HexNumber, null, out uint ph) &&
-                       ph == info.CarHash;
+                       ph == carHash;
         if (!sameCar)
             parts.Add("cross-car (some paints/decals may be car-specific)");
 
@@ -412,14 +452,105 @@ public static class LiveryService
         return layersCopied;
     }
 
-    public static string SummarizeSlot(byte[] working, int slot)
+    public static string SummarizeSlot(byte[] working, int slot, bool menuMyCars = false)
     {
         try
         {
-            var stats = SummarizeGraphics(ReadGraphics(working, slot));
+            var stats = SummarizeGraphics(ReadGraphics(working, slot, menuMyCars));
             return stats.TotalSet == 0 ? "No graphics on this car" : stats.DetailLabel;
         }
         catch { return "—"; }
+    }
+
+    public static LiveryPreset? ClipboardPkg { get; private set; }
+
+    public static void ClearClipboard()
+    {
+        ClipboardPkg = null;
+        try
+        {
+            AppPaths.EnsureMigrated();
+            if (File.Exists(AppPaths.LiveryClipboardPath))
+                File.Delete(AppPaths.LiveryClipboardPath);
+        }
+        catch { /* ok */ }
+    }
+
+    /// <summary>Copy livery from Career or Customize Car Select into the livery clipboard.</summary>
+    public static LiveryPreset ExportToClipboard(byte[] working, int slot, string? saveName = null, bool menuMyCars = false)
+    {
+        var preset = CaptureFromSlot(working, slot, saveName ?? "clipboard", "clipboard", menuMyCars);
+        CopyToClipboard(preset);
+        return preset;
+    }
+
+    public static void CopyToClipboard(LiveryPreset preset)
+    {
+        ClipboardPkg = preset;
+        try
+        {
+            string json = JsonSerializer.Serialize(preset, new JsonSerializerOptions { WriteIndented = true });
+            Clipboard.SetText("NFSU2_LIVERY_CLIP\n" + json);
+        }
+        catch { /* ok */ }
+        try
+        {
+            AppPaths.EnsureMigrated();
+            File.WriteAllText(AppPaths.LiveryClipboardPath,
+                JsonSerializer.Serialize(preset, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch { /* ok */ }
+    }
+
+    public static LiveryPreset? PasteFromClipboard()
+    {
+        try
+        {
+            if (Clipboard.ContainsText())
+            {
+                string t = Clipboard.GetText();
+                if (t.StartsWith("NFSU2_LIVERY_CLIP\n", StringComparison.Ordinal))
+                    t = t["NFSU2_LIVERY_CLIP\n".Length..];
+                if (t.Contains("graphics_hex", StringComparison.OrdinalIgnoreCase) ||
+                    t.Contains("layers_hex", StringComparison.OrdinalIgnoreCase))
+                {
+                    var pkg = JsonSerializer.Deserialize<LiveryPreset>(t);
+                    if (pkg != null && (!string.IsNullOrWhiteSpace(pkg.GraphicsHex) || !string.IsNullOrWhiteSpace(pkg.LayersHex)))
+                    {
+                        ClipboardPkg = pkg;
+                        return pkg;
+                    }
+                }
+            }
+        }
+        catch { /* fall through */ }
+
+        if (ClipboardPkg != null) return ClipboardPkg;
+
+        try
+        {
+            AppPaths.EnsureMigrated();
+            string path = AppPaths.LiveryClipboardPath;
+            if (File.Exists(path))
+            {
+                var pkg = JsonSerializer.Deserialize<LiveryPreset>(File.ReadAllText(path));
+                if (pkg != null && (!string.IsNullOrWhiteSpace(pkg.GraphicsHex) || !string.IsNullOrWhiteSpace(pkg.LayersHex)))
+                {
+                    ClipboardPkg = pkg;
+                    return pkg;
+                }
+            }
+        }
+        catch { /* ignore */ }
+        return null;
+    }
+
+    public static string SummarizeClipboard(LiveryPreset? pkg)
+    {
+        if (pkg == null) return "Livery clipboard: empty";
+        string car = string.IsNullOrWhiteSpace(pkg.CarName) ? "?" : pkg.CarName;
+        string bits = string.IsNullOrWhiteSpace(pkg.Note) ? "graphics" : pkg.Note;
+        return $"Livery clipboard: {car} ({bits})";
     }
 
     private readonly record struct GraphicsStats(int Paint, int Vinyl, int Decals, int Window, int Neon, int TotalSet)
@@ -460,9 +591,9 @@ public static class LiveryService
         return new GraphicsStats(paint, vinyl, decals, window, neon, total);
     }
 
-    private static byte[] ReadGraphics(byte[] working, int slot)
+    private static byte[] ReadGraphics(byte[] working, int slot, bool menuMyCars = false)
     {
-        int editor = Layout.SlotEditorOffset(slot);
+        int editor = DynoService.EditorBase(slot, menuMyCars);
         Ensure(working, editor + VisualBase + VisualSlotCount * 4);
         byte[] buf = new byte[GraphicsBytes];
         for (int i = 0; i < GraphicsSlots.Length; i++)
@@ -470,11 +601,11 @@ public static class LiveryService
         return buf;
     }
 
-    private static void WriteGraphics(byte[] working, int slot, byte[] graphics)
+    private static void WriteGraphics(byte[] working, int slot, byte[] graphics, bool menuMyCars = false)
     {
         if (graphics.Length != GraphicsBytes)
             throw new InvalidOperationException("Invalid graphics pack size.");
-        int editor = Layout.SlotEditorOffset(slot);
+        int editor = DynoService.EditorBase(slot, menuMyCars);
         Ensure(working, editor + VisualBase + VisualSlotCount * 4);
         for (int i = 0; i < GraphicsSlots.Length; i++)
             Buffer.BlockCopy(graphics, i * 4, working, editor + VisualBase + GraphicsSlots[i] * 4, 4);

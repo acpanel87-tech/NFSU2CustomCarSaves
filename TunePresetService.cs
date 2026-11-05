@@ -259,6 +259,19 @@ public static class TunePresetService
             }
             catch { /* skip */ }
         }
+        foreach (var c in MyCarsService.ReadAll(working))
+        {
+            if (!c.IsOccupied) continue;
+            try
+            {
+                var preset = CapturePreset(working, c.Index, saveName + " / My Cars", verified, menuMyCars: true);
+                string key = ContentKey(preset);
+                if (!existing.Add(key)) continue;
+                lib.Presets.Insert(0, preset);
+                added++;
+            }
+            catch { /* skip */ }
+        }
 
         if (added > 0 && !skipDedupeWrite)
         {
@@ -269,9 +282,9 @@ public static class TunePresetService
         return added;
     }
 
-    public static TunePreset HarvestFromSlot(byte[] working, int slot, string saveName)
+    public static TunePreset HarvestFromSlot(byte[] working, int slot, string saveName, bool menuMyCars = false)
     {
-        var preset = CapturePreset(working, slot, saveName, "user");
+        var preset = CapturePreset(working, slot, saveName, "user", menuMyCars);
         preset.Source = "user-created";
         var lib = LoadLibraryMutable();
         string key = ContentKey(preset);
@@ -345,7 +358,8 @@ public static class TunePresetService
         int slot,
         TunePreset preset,
         bool includeUpgrades = true,
-        bool copyBodyVisuals = false)
+        bool copyBodyVisuals = false,
+        bool menuMyCars = false)
     {
         if (!preset.IsDyno)
             throw new InvalidOperationException("Only dyno presets can be applied here.");
@@ -364,25 +378,40 @@ public static class TunePresetService
             useParts ? preset.AeroVisualHex : null,
             preset.CarHash,
             useParts,
-            copyBodyVisuals && useParts);
+            copyBodyVisuals && useParts,
+            menuMyCars);
     }
 
-    private static TunePreset CapturePreset(byte[] working, int slot, string saveName, string verified)
+    private static TunePreset CapturePreset(byte[] working, int slot, string saveName, string verified, bool menuMyCars = false)
     {
-        var info = GarageDatService.ReadSlot(working, slot);
-        if (!info.IsOccupied) throw new InvalidOperationException("Slot has no car.");
+        string carName;
+        uint carHash;
+        if (menuMyCars)
+        {
+            var mc = MyCarsService.Read(working, slot);
+            if (!mc.IsOccupied) throw new InvalidOperationException("My Cars slot has no car.");
+            carName = mc.DisplayName;
+            carHash = mc.CarHash;
+        }
+        else
+        {
+            var info = GarageDatService.ReadSlot(working, slot);
+            if (!info.IsOccupied) throw new InvalidOperationException("Slot has no car.");
+            carName = info.DisplayName;
+            carHash = info.CarHash;
+        }
 
-        DynoPackService.Capture(working, slot, out var dyno, out var perf, out var unique, out var aeroVis);
+        DynoPackService.Capture(working, slot, out var dyno, out var perf, out var unique, out var aeroVis, menuMyCars);
         bool needs = DynoPackService.DynoNeedsParts(dyno, perf);
         string aeroNote = DynoPackService.AeroSummary(perf);
 
         var preset = new TunePreset
         {
             Id = ShortId(Convert.ToHexString(dyno) + Convert.ToHexString(perf)) + "-" + Sanitize(saveName).ToLowerInvariant(),
-            CarName = info.DisplayName,
+            CarName = carName,
             SaveName = saveName,
             Slot = slot + 1,
-            CarHash = info.CarHash.ToString("X8"),
+            CarHash = carHash.ToString("X8"),
             DynoHex = Convert.ToHexString(dyno),
             Verified = verified,
             Kind = "dyno",

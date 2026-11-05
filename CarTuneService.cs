@@ -181,13 +181,30 @@ public static class CarTuneService
         (0x586, 0x58d),
     ];
 
-    public static int SlotEditorBase(int slot) => Layout.SlotEditorOffset(slot);
+    public static int SlotEditorBase(int slot, bool menuMyCars = false) =>
+        menuMyCars ? MyCarsService.EditorOffset(slot) : Layout.SlotEditorOffset(slot);
 
-    public static CarTuneStats Read(byte[] working, int slot)
+    public static CarTuneStats Read(byte[] working, int slot, bool menuMyCars = false)
     {
-        var info = GarageDatService.ReadSlot(working, slot);
-        int baseOff = SlotEditorBase(slot);
-        EnsureInRange(working, baseOff);
+        string carName;
+        bool occupied, locked;
+        if (menuMyCars)
+        {
+            var mc = MyCarsService.Read(working, slot);
+            carName = mc.DisplayName;
+            occupied = mc.IsOccupied;
+            locked = false;
+        }
+        else
+        {
+            var info = GarageDatService.ReadSlot(working, slot);
+            carName = info.DisplayName;
+            occupied = info.IsOccupied;
+            locked = info.IsLocked;
+        }
+
+        int baseOff = SlotEditorBase(slot, menuMyCars);
+        EnsureInRange(working, baseOff, menuMyCars);
 
         int perfOn = 0;
         var catOn = new int[Categories.Length];
@@ -213,13 +230,17 @@ public static class CarTuneService
             if (uniq[i]) uniqOn++;
         }
 
+        // Shop unlock / purchase tables sit past TunedCar — only valid on Career SAVE_REC stride.
         int unlockTotal = 0, unlockOn = 0;
-        foreach (var (start, end) in UnlockRanges)
+        if (!menuMyCars)
         {
-            for (int rel = start; rel <= end; rel++)
+            foreach (var (start, end) in UnlockRanges)
             {
-                unlockTotal++;
-                if (working[baseOff + rel] == 0xFF) unlockOn++;
+                for (int rel = start; rel <= end; rel++)
+                {
+                    unlockTotal++;
+                    if (working[baseOff + rel] == 0xFF) unlockOn++;
+                }
             }
         }
 
@@ -230,9 +251,9 @@ public static class CarTuneService
         return new CarTuneStats
         {
             SlotIndex = slot,
-            CarName = info.DisplayName,
-            IsOccupied = info.IsOccupied,
-            IsLocked = info.IsLocked,
+            CarName = carName,
+            IsOccupied = occupied,
+            IsLocked = locked,
             PerfInstalled = perfOn,
             PerfTotal = PartLevel.Count,
             UniqueOn = uniqOn,
@@ -243,11 +264,13 @@ public static class CarTuneService
             CategoryInstalled = catOn,
             UniqueFlags = uniq,
             SummaryNl =
-                $"{info.DisplayName}\n" +
+                $"{carName}\n" +
                 $"Level: {LevelLabel(level)}\n" +
                 $"Parts: {perfOn}/{PartLevel.Count} installed (~{pct}%)\n" +
                 $"Unique upgrades: {uniqOn}/{Layout.UniquePerfCount}\n" +
-                $"Shop unlocks: {unlockOn}/{unlockTotal}",
+                (menuMyCars
+                    ? "Shop unlocks: n/a (My Cars block)"
+                    : $"Shop unlocks: {unlockOn}/{unlockTotal}"),
         };
     }
 
@@ -276,10 +299,10 @@ public static class CarTuneService
         return TuneLevel.Stock;
     }
 
-    public static void SetLevel(byte[] working, int slot, TuneLevel level)
+    public static void SetLevel(byte[] working, int slot, TuneLevel level, bool menuMyCars = false)
     {
-        int baseOff = SlotEditorBase(slot);
-        EnsureInRange(working, baseOff);
+        int baseOff = SlotEditorBase(slot, menuMyCars);
+        EnsureInRange(working, baseOff, menuMyCars);
 
         foreach (int idx in PartLevel.Keys)
             working[baseOff + Layout.PerfOff + idx] = 0;
@@ -306,33 +329,38 @@ public static class CarTuneService
         for (int i = 0; i < Layout.UniquePerfCount; i++)
             BitConverter.GetBytes(uniqueOn ? 1u : 0u).CopyTo(working, baseOff + Layout.UniquePerfOff + i * 4);
 
-        MarkPurchasedBits(working, baseOff);
+        if (!menuMyCars) MarkPurchasedBits(working, baseOff);
     }
 
     /// <summary>
     /// MAX OUT: own/unlock all parts + cosmetics shop. Optionally install Extreme packages.
     /// Unique flags follow <paramref name="uniqueMode"/> (none / legit 3-in-order / all).
     /// Does not change body/livery visuals or dyno.
+    /// My Cars: Extreme + uniques only (no shop unlock / purchase tables — those live past TunedCar).
     /// </summary>
     public static void FullyTune(
         byte[] working,
         int slot,
         MaxOutPerfMode perfMode = MaxOutPerfMode.InstallExtreme,
-        MaxOutUniqueMode uniqueMode = MaxOutUniqueMode.Stage3)
+        MaxOutUniqueMode uniqueMode = MaxOutUniqueMode.Stage3,
+        bool menuMyCars = false)
     {
-        int baseOff = SlotEditorBase(slot);
-        EnsureInRange(working, baseOff);
+        int baseOff = SlotEditorBase(slot, menuMyCars);
+        EnsureInRange(working, baseOff, menuMyCars);
 
         if (perfMode == MaxOutPerfMode.InstallExtreme)
         {
             // Best packages on the car (SetLevel also flips uniques — we override next).
-            SetLevel(working, slot, TuneLevel.Extreme);
+            SetLevel(working, slot, TuneLevel.Extreme, menuMyCars);
         }
 
-        ApplyUniqueMode(working, slot, uniqueMode);
-        OwnAllPackageBits(working, baseOff);
-        SetShopUnlocks(working, slot, on: true);
-        GarageDatService.UnlockSlot(working, slot);
+        ApplyUniqueMode(working, slot, uniqueMode, menuMyCars);
+        if (!menuMyCars)
+        {
+            OwnAllPackageBits(working, baseOff);
+            SetShopUnlocks(working, slot, on: true);
+            GarageDatService.UnlockSlot(working, slot);
+        }
     }
 
     // Unique category indices (Categories[].UniqueIndex): EN=3, TI=8, TR=1, EC=7, TU=4, BR=6, NO=2, WT=0, SU=5
@@ -341,10 +369,10 @@ public static class CarTuneService
     private static readonly int[] UniqueStage5 = [2, 0, 5]; // NOS, Weight, Suspension
 
     /// <summary>Apply unique flags by career stage order (Scorpio). Does not touch cosmetics.</summary>
-    public static void ApplyUniqueMode(byte[] working, int slot, MaxOutUniqueMode mode)
+    public static void ApplyUniqueMode(byte[] working, int slot, MaxOutUniqueMode mode, bool menuMyCars = false)
     {
-        int baseOff = SlotEditorBase(slot);
-        EnsureInRange(working, baseOff);
+        int baseOff = SlotEditorBase(slot, menuMyCars);
+        EnsureInRange(working, baseOff, menuMyCars);
         for (int i = 0; i < Layout.UniquePerfCount; i++)
             BitConverter.GetBytes(0u).CopyTo(working, baseOff + Layout.UniquePerfOff + i * 4);
 
@@ -374,38 +402,38 @@ public static class CarTuneService
         }
     }
 
-    public static bool IsPartOn(byte[] working, int slot, int partIndex)
+    public static bool IsPartOn(byte[] working, int slot, int partIndex, bool menuMyCars = false)
     {
-        int baseOff = SlotEditorBase(slot);
-        EnsureInRange(working, baseOff);
+        int baseOff = SlotEditorBase(slot, menuMyCars);
+        EnsureInRange(working, baseOff, menuMyCars);
         if (partIndex < 0 || partIndex >= Layout.PerfCount) return false;
         return working[baseOff + Layout.PerfOff + partIndex] != 0;
     }
 
-    public static void SetPartOn(byte[] working, int slot, int partIndex, bool on, bool respectConflicts = true)
+    public static void SetPartOn(byte[] working, int slot, int partIndex, bool on, bool respectConflicts = true, bool menuMyCars = false)
     {
-        int baseOff = SlotEditorBase(slot);
-        EnsureInRange(working, baseOff);
+        int baseOff = SlotEditorBase(slot, menuMyCars);
+        EnsureInRange(working, baseOff, menuMyCars);
         if (partIndex < 0 || partIndex >= Layout.PerfCount) return;
         if (on && respectConflicts)
             EnablePart(working, baseOff, partIndex);
         else
             working[baseOff + Layout.PerfOff + partIndex] = on ? (byte)1 : (byte)0;
-        if (on) MarkPurchasedBits(working, baseOff);
+        if (on && !menuMyCars) MarkPurchasedBits(working, baseOff);
     }
 
-    public static bool IsUniqueOn(byte[] working, int slot, int uniqueIndex)
+    public static bool IsUniqueOn(byte[] working, int slot, int uniqueIndex, bool menuMyCars = false)
     {
-        int baseOff = SlotEditorBase(slot);
-        EnsureInRange(working, baseOff);
+        int baseOff = SlotEditorBase(slot, menuMyCars);
+        EnsureInRange(working, baseOff, menuMyCars);
         if (uniqueIndex < 0 || uniqueIndex >= Layout.UniquePerfCount) return false;
         return BitConverter.ToUInt32(working, baseOff + Layout.UniquePerfOff + uniqueIndex * 4) != 0;
     }
 
-    public static void SetUniqueOn(byte[] working, int slot, int uniqueIndex, bool on)
+    public static void SetUniqueOn(byte[] working, int slot, int uniqueIndex, bool on, bool menuMyCars = false)
     {
-        int baseOff = SlotEditorBase(slot);
-        EnsureInRange(working, baseOff);
+        int baseOff = SlotEditorBase(slot, menuMyCars);
+        EnsureInRange(working, baseOff, menuMyCars);
         if (uniqueIndex < 0 || uniqueIndex >= Layout.UniquePerfCount) return;
         BitConverter.GetBytes(on ? 1u : 0u).CopyTo(working, baseOff + Layout.UniquePerfOff + uniqueIndex * 4);
     }
@@ -418,8 +446,9 @@ public static class CarTuneService
             if (set.Contains(p.Index)) yield return p;
     }
 
-    public static void SetShopUnlocks(byte[] working, int slot, bool on)
+    public static void SetShopUnlocks(byte[] working, int slot, bool on, bool menuMyCars = false)
     {
+        if (menuMyCars) return; // unlock tables are past the My Cars TunedCar block
         int baseOff = SlotEditorBase(slot);
         EnsureInRange(working, baseOff);
         byte v = on ? (byte)0xFF : (byte)0x00;
@@ -430,19 +459,19 @@ public static class CarTuneService
         }
     }
 
-    public static void SetUniqueAll(byte[] working, int slot, bool on)
+    public static void SetUniqueAll(byte[] working, int slot, bool on, bool menuMyCars = false)
     {
-        int baseOff = SlotEditorBase(slot);
-        EnsureInRange(working, baseOff);
+        int baseOff = SlotEditorBase(slot, menuMyCars);
+        EnsureInRange(working, baseOff, menuMyCars);
         for (int i = 0; i < Layout.UniquePerfCount; i++)
             BitConverter.GetBytes(on ? 1u : 0u).CopyTo(working, baseOff + Layout.UniquePerfOff + i * 4);
     }
 
-    public static void SetCategoryLevel(byte[] working, int slot, int categoryIndex, TuneLevel level)
+    public static void SetCategoryLevel(byte[] working, int slot, int categoryIndex, TuneLevel level, bool menuMyCars = false)
     {
         if ((uint)categoryIndex >= (uint)Categories.Length) throw new ArgumentOutOfRangeException(nameof(categoryIndex));
-        int baseOff = SlotEditorBase(slot);
-        EnsureInRange(working, baseOff);
+        int baseOff = SlotEditorBase(slot, menuMyCars);
+        EnsureInRange(working, baseOff, menuMyCars);
         var cat = Categories[categoryIndex];
 
         foreach (int idx in cat.Indices)
@@ -468,18 +497,18 @@ public static class CarTuneService
             BitConverter.GetBytes(level >= TuneLevel.Pro ? 1u : 0u)
                 .CopyTo(working, baseOff + Layout.UniquePerfOff + cat.UniqueIndex * 4);
 
-        MarkPurchasedBits(working, baseOff);
+        if (!menuMyCars) MarkPurchasedBits(working, baseOff);
     }
 
     /// <summary>
     /// "Snelheid / power multiplier" proxy: Extreme packs + unique + unlocks.
     /// factor 1.0 = Street, 1.5 = Pro, 2.0+ = Extreme fully.
     /// </summary>
-    public static void ApplyPowerMultiplier(byte[] working, int slot, double factor)
+    public static void ApplyPowerMultiplier(byte[] working, int slot, double factor, bool menuMyCars = false)
     {
-        if (factor < 1.1) SetLevel(working, slot, TuneLevel.Street);
-        else if (factor < 1.6) SetLevel(working, slot, TuneLevel.Pro);
-        else FullyTune(working, slot);
+        if (factor < 1.1) SetLevel(working, slot, TuneLevel.Street, menuMyCars);
+        else if (factor < 1.6) SetLevel(working, slot, TuneLevel.Pro, menuMyCars);
+        else FullyTune(working, slot, menuMyCars: menuMyCars);
     }
 
     private static void EnablePart(byte[] working, int baseOff, int index)
@@ -514,8 +543,16 @@ public static class CarTuneService
         }
     }
 
-    private static void EnsureInRange(byte[] working, int baseOff)
+    private static void EnsureInRange(byte[] working, int baseOff, bool menuMyCars = false)
     {
+        if (menuMyCars)
+        {
+            // Editor = TunedCar+4; dyno/perf/unique all fit inside 1072-byte My Cars block.
+            int tuned = baseOff - MyCarsLayout.EditorFromBlock;
+            if (tuned < 0 || tuned + Layout.TunedCarSize > working.Length)
+                throw new InvalidOperationException("My Cars slot does not exist in this buffer.");
+            return;
+        }
         int saveRec = baseOff - Layout.SlotEditorFromSaveRec;
         int need = saveRec + Layout.SlotStride;
         if (saveRec < 0 || working.Length < need)

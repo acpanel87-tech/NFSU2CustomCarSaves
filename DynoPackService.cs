@@ -14,9 +14,9 @@ public static class DynoPackService
     public const int UniqueBytes = Layout.UniquePerfCount * 4; // 36
     public const int AeroVisualBytes = 5 * 4; // 20
 
-    public static void Capture(byte[] working, int slot, out byte[] dyno, out byte[] perf, out byte[] unique, out byte[] aeroVisual)
+    public static void Capture(byte[] working, int slot, out byte[] dyno, out byte[] perf, out byte[] unique, out byte[] aeroVisual, bool menuMyCars = false)
     {
-        int editor = Layout.SlotEditorOffset(slot);
+        int editor = DynoService.EditorBase(slot, menuMyCars);
         Ensure(working, editor);
 
         dyno = new byte[Layout.DynoTotalSize];
@@ -50,21 +50,35 @@ public static class DynoPackService
         string? aeroVisualHex,
         string? presetCarHash,
         bool includeUpgrades,
-        bool copyBodyVisuals = false)
+        bool copyBodyVisuals = false,
+        bool menuMyCars = false)
     {
-        var info = GarageDatService.ReadSlot(working, slot);
-        if (!info.IsOccupied)
+        uint carHash;
+        bool occupied;
+        if (menuMyCars)
+        {
+            var mc = MyCarsService.Read(working, slot);
+            occupied = mc.IsOccupied;
+            carHash = mc.CarHash;
+        }
+        else
+        {
+            var info = GarageDatService.ReadSlot(working, slot);
+            occupied = info.IsOccupied;
+            carHash = info.CarHash;
+        }
+        if (!occupied)
             throw new InvalidOperationException("Target slot has no car.");
 
         string dHex = Norm(dynoHex);
         if (dHex.Length != Layout.DynoTotalSize * 2)
             throw new InvalidOperationException($"Invalid dyno ({dHex.Length / 2} bytes).");
-        DynoService.WriteRaw(working, slot, Convert.FromHexString(dHex));
+        DynoService.WriteRaw(working, slot, Convert.FromHexString(dHex), menuMyCars);
 
         if (!includeUpgrades && !copyBodyVisuals)
             return "dyno only (livery/body kept)";
 
-        int editor = Layout.SlotEditorOffset(slot);
+        int editor = DynoService.EditorBase(slot, menuMyCars);
         Ensure(working, editor);
         var done = new List<string> { "dyno" };
 
@@ -95,7 +109,7 @@ public static class DynoPackService
         // Body aero parts only if explicitly requested + same car model.
         bool sameCar = !string.IsNullOrWhiteSpace(presetCarHash) &&
                        uint.TryParse(presetCarHash, System.Globalization.NumberStyles.HexNumber, null, out uint ph) &&
-                       ph == info.CarHash;
+                       ph == carHash;
 
         if (copyBodyVisuals && sameCar && !string.IsNullOrWhiteSpace(aeroVisualHex))
         {

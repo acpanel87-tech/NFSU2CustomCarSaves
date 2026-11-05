@@ -40,26 +40,31 @@ public static class DynoService
         catch { /* ok */ }
     }
 
-    public static byte[] ReadRaw(byte[] working, int slot)
+    public static int EditorBase(int slot, bool menuMyCars = false) =>
+        menuMyCars ? MyCarsService.EditorOffset(slot) : Layout.SlotEditorOffset(slot);
+
+    public static byte[] ReadRaw(byte[] working, int slot, bool menuMyCars = false)
     {
-        int baseOff = Layout.SlotEditorOffset(slot);
+        int baseOff = EditorBase(slot, menuMyCars);
         Ensure(working, baseOff);
         var buf = new byte[Layout.DynoTotalSize];
         Buffer.BlockCopy(working, baseOff + Layout.DynoOff, buf, 0, Layout.DynoTotalSize);
         return buf;
     }
 
-    public static void WriteRaw(byte[] working, int slot, byte[] dyno205)
+    public static void WriteRaw(byte[] working, int slot, byte[] dyno205, bool menuMyCars = false)
     {
         if (dyno205.Length != Layout.DynoTotalSize)
             throw new ArgumentException($"Dyno must be {Layout.DynoTotalSize} bytes.");
-        int baseOff = Layout.SlotEditorOffset(slot);
+        int baseOff = EditorBase(slot, menuMyCars);
         Ensure(working, baseOff);
         Buffer.BlockCopy(dyno205, 0, working, baseOff + Layout.DynoOff, Layout.DynoTotalSize);
     }
 
-    public static DynoPackage Export(byte[] working, int slot, string? saveName = null, string? note = null)
+    public static DynoPackage Export(byte[] working, int slot, string? saveName = null, string? note = null, bool menuMyCars = false)
     {
+        if (menuMyCars)
+            return MyCarsService.ExportDyno(working, slot, saveName);
         var info = GarageDatService.ReadSlot(working, slot);
         if (!info.IsOccupied)
             throw new InvalidOperationException("Slot is empty — no dyno to copy.");
@@ -77,25 +82,25 @@ public static class DynoService
     }
 
     /// <summary>Read one event's 41-byte setup (0=Circuit … 4=URL).</summary>
-    public static byte[] ReadEvent(byte[] working, int slot, int eventIndex)
+    public static byte[] ReadEvent(byte[] working, int slot, int eventIndex, bool menuMyCars = false)
     {
         if (eventIndex < 0 || eventIndex >= Layout.DynoSetupCount)
             throw new ArgumentOutOfRangeException(nameof(eventIndex));
-        byte[] all = ReadRaw(working, slot);
+        byte[] all = ReadRaw(working, slot, menuMyCars);
         var one = new byte[Layout.DynoSetupSize];
         Buffer.BlockCopy(all, eventIndex * Layout.DynoSetupSize, one, 0, Layout.DynoSetupSize);
         return one;
     }
 
-    public static void WriteEvent(byte[] working, int slot, int eventIndex, byte[] setup41)
+    public static void WriteEvent(byte[] working, int slot, int eventIndex, byte[] setup41, bool menuMyCars = false)
     {
         if (eventIndex < 0 || eventIndex >= Layout.DynoSetupCount)
             throw new ArgumentOutOfRangeException(nameof(eventIndex));
         if (setup41.Length != Layout.DynoSetupSize)
             throw new ArgumentException($"Setup must be {Layout.DynoSetupSize} bytes.");
-        byte[] all = ReadRaw(working, slot);
+        byte[] all = ReadRaw(working, slot, menuMyCars);
         Buffer.BlockCopy(setup41, 0, all, eventIndex * Layout.DynoSetupSize, Layout.DynoSetupSize);
-        WriteRaw(working, slot, all);
+        WriteRaw(working, slot, all, menuMyCars);
     }
 
     public static readonly (string Label, int Index)[] SetupFields =
@@ -109,34 +114,38 @@ public static class DynoService
     ];
 
 
-    public static void Apply(byte[] working, int slot, DynoPackage pkg)
+    public static void Apply(byte[] working, int slot, DynoPackage pkg, bool menuMyCars = false)
     {
-        var info = GarageDatService.ReadSlot(working, slot);
-        if (!info.IsOccupied)
-            throw new InvalidOperationException("Target slot has no car.");
+        EnsureOccupied(working, slot, menuMyCars);
         string hex = (pkg.DynoHex ?? "").Replace(" ", "").Replace("-", "");
         if (hex.Length != Layout.DynoTotalSize * 2)
             throw new InvalidOperationException($"Invalid dyno ({hex.Length / 2} bytes, expected {Layout.DynoTotalSize}).");
-        WriteRaw(working, slot, Convert.FromHexString(hex));
+        WriteRaw(working, slot, Convert.FromHexString(hex), menuMyCars);
     }
 
     /// <summary>Kopieer alleen de gekozen events (bitmask bit0=Circuit … bit4=URL).</summary>
-    public static void ApplySelective(byte[] working, int slot, DynoPackage pkg, int eventMask)
+    public static void ApplySelective(byte[] working, int slot, DynoPackage pkg, int eventMask, bool menuMyCars = false)
     {
-        var info = GarageDatService.ReadSlot(working, slot);
-        if (!info.IsOccupied)
-            throw new InvalidOperationException("Target slot has no car.");
+        EnsureOccupied(working, slot, menuMyCars);
         string hex = (pkg.DynoHex ?? "").Replace(" ", "").Replace("-", "");
         if (hex.Length != Layout.DynoTotalSize * 2)
             throw new InvalidOperationException("Invalid dyno package.");
         byte[] src = Convert.FromHexString(hex);
-        byte[] dst = ReadRaw(working, slot);
+        byte[] dst = ReadRaw(working, slot, menuMyCars);
         for (int i = 0; i < Layout.DynoSetupCount; i++)
         {
             if ((eventMask & (1 << i)) == 0) continue;
             Buffer.BlockCopy(src, i * Layout.DynoSetupSize, dst, i * Layout.DynoSetupSize, Layout.DynoSetupSize);
         }
-        WriteRaw(working, slot, dst);
+        WriteRaw(working, slot, dst, menuMyCars);
+    }
+
+    private static void EnsureOccupied(byte[] working, int slot, bool menuMyCars)
+    {
+        bool ok = menuMyCars
+            ? MyCarsService.Read(working, slot).IsOccupied
+            : GarageDatService.ReadSlot(working, slot).IsOccupied;
+        if (!ok) throw new InvalidOperationException("Target slot has no car.");
     }
 
     public static void CopyToClipboard(DynoPackage pkg)

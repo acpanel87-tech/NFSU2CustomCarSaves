@@ -23,6 +23,7 @@ internal static class AppPaths
     public static string DynoLibraryPath => Path.Combine(DataDir, "dyno_library.json");
     public static string LiveryLibraryPath => Path.Combine(DataDir, "livery_library.json");
     public static string DynoClipboardPath => Path.Combine(DataDir, "dyno_clipboard.json");
+    public static string LiveryClipboardPath => Path.Combine(DataDir, "livery_clipboard.json");
 
     public static string StockPresetsDir
     {
