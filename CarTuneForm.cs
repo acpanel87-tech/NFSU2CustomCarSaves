@@ -482,7 +482,7 @@ public sealed class CarTuneForm : Form
         root.Controls.Add(presetBtns);
 
         root.Controls.Add(UiTheme.SectionHead("Edit setup"));
-        root.Controls.Add(UiTheme.Muted("Circuit · Drag · Drift · Street X · URL. Bytes 0–200 (100 = midpoint)."));
+        root.Controls.Add(UiTheme.Muted("Circuit · Drag · Drift · Street X · URL. Bytes 0–200 (100 = stock midpoint for ECU/turbo/gears)."));
 
         _eventPick.DropDownStyle = ComboBoxStyle.DropDownList;
         _eventPick.Width = 200;

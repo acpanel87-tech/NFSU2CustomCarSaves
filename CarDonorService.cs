@@ -25,7 +25,7 @@ public sealed class CarDonor
 
 /// <summary>
 /// Loads hackch <c>car-donors.json</c> and writes a stock donor into a slot
-/// (appearance reset, vinyl/decal/neon cleared, perf stock, dyno bytes kept if present).
+/// (appearance reset, vinyl/decal/neon cleared, perf/unique stock, dyno reset to midpoint 100).
 /// </summary>
 public static class CarDonorService
 {
@@ -95,7 +95,8 @@ public static class CarDonorService
 
     /// <summary>
     /// Write stock car into any slot 1–10 (hackch <c>setSlotCar</c>).
-    /// Keeps donor graphics (Snoop/Capone/Rachel vinyls). Dyno region left intact.
+    /// Keeps donor graphics (Snoop/Capone/Rachel vinyls). Resets parts + dyno to stock midpoint
+    /// (byte 100) so leftover ECU/turbo curves from the previous car do not stick.
     /// </summary>
     public static void PlaceInSlot(byte[] working, int slot, CarDonor donor)
     {
@@ -121,10 +122,20 @@ public static class CarDonorService
             Buffer.BlockCopy(data, 0, working, at, data.Length);
         }
 
-        // Donor blocks stop before PERF — clear old car's installed parts
+        // Donor blocks stop before PERF — clear old car's installed parts + uniques
         int perfAt = editor + Layout.PerfOff;
         if (perfAt + Layout.PerfCount <= working.Length)
             Array.Clear(working, perfAt, Layout.PerfCount);
+
+        int uniqAt = editor + Layout.UniquePerfOff;
+        int uniqBytes = Layout.UniquePerfCount * 4;
+        if (uniqAt + uniqBytes <= working.Length)
+            Array.Clear(working, uniqAt, uniqBytes);
+
+        // Stock relative midpoint (hackch): 100 = no ECU/turbo/gear offset from part defaults
+        var stockDyno = new byte[Layout.DynoTotalSize];
+        Array.Fill(stockDyno, (byte)100);
+        DynoService.WriteRaw(working, slot, stockDyno);
 
         // hackch: lock=0, bought=1 — do not overwrite car body with "01CR"/"CR01"
         working[saveRec + Layout.LockInSaveRec] = 0;

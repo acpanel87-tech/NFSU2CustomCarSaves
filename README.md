@@ -13,11 +13,22 @@ Requires [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8
 
 The beta ships with stock dyno / livery libraries and save-rack seed so you start with the same content as the public build.
 
+## Preview
+
+![Main + Performance](Release%20Images/image3.png)
+
+![Replace car](Release%20Images/image.png)
+
+![Dyno](Release%20Images/image4.png)
+
+![Livery](Release%20Images/image2.png)
+
 ## For testers
 
 - Point the app at your NFSU2 profile / `GARAGE.DAT` as prompted
 - Stock content is seeded on first run from `Presets/` → `Data/`
 - Your personal clipboard and free-roam flag stay local (not in the zip)
+- **Add / Replace car** places a stock body and resets dyno to midpoint (100) so old ECU/turbo curves do not stick
 
 ## Build from source
 
@@ -34,7 +45,7 @@ Pack a Desktop zip only:
 Publish a GitHub Release (beta by default):
 
 ```powershell
-.\release.ps1 -Version 0.1.0-beta.1
+.\release.ps1 -Version 0.1.0-beta.2
 # stable later:
 .\release.ps1 -Version 1.0.0 -Stable
 ```
