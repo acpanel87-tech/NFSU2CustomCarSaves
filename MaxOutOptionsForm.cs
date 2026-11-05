@@ -5,11 +5,12 @@ internal sealed class MaxOutOptionsForm : Form
     private readonly RadioButton _perfInstall;
     private readonly RadioButton _perfOwn;
     private readonly RadioButton _uniqNone;
-    private readonly RadioButton _uniqLegit;
-    private readonly RadioButton _uniqAll;
+    private readonly RadioButton _uniqS3;
+    private readonly RadioButton _uniqS4;
+    private readonly RadioButton _uniqS5;
 
     public MaxOutPerfMode PerfMode { get; private set; } = MaxOutPerfMode.InstallExtreme;
-    public MaxOutUniqueMode UniqueMode { get; private set; } = MaxOutUniqueMode.Legit3;
+    public MaxOutUniqueMode UniqueMode { get; private set; } = MaxOutUniqueMode.Stage3;
 
     public MaxOutOptionsForm()
     {
@@ -19,25 +20,21 @@ internal sealed class MaxOutOptionsForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = false;
-        ClientSize = new Size(420, 340);
+        ClientSize = new Size(460, 400);
         UiTheme.ApplyForm(this);
 
         var host = new StarfieldControl(28, 70) { Animate = false, Dock = DockStyle.Fill };
         Controls.Add(host);
 
-        var root = new TableLayoutPanel
+        var root = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 5,
-            Padding = new Padding(18, 16, 18, 14),
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            AutoScroll = true,
+            Padding = new Padding(18, 16, 18, 56),
             BackColor = Color.Transparent,
         };
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
         host.Controls.Add(root);
 
         root.Controls.Add(new Label
@@ -48,9 +45,9 @@ internal sealed class MaxOutOptionsForm : Form
             ForeColor = UiTheme.TextStrong,
             Margin = new Padding(0, 0, 0, 6),
         });
-        root.Controls.Add(UiTheme.Muted("Cosmetics stay on the car. Shop + all parts get owned/unlocked either way."));
+        root.Controls.Add(UiTheme.Muted(
+            "Cosmetics on the car stay as-is. Shop + all parts get owned/unlocked either way."));
 
-        // Performance
         root.Controls.Add(UiTheme.SectionHead("Performance parts"));
         var perfBox = MakeGroup();
         _perfInstall = MakeRadio("Install Extreme (best packages on the car)", true);
@@ -59,15 +56,16 @@ internal sealed class MaxOutOptionsForm : Form
         perfBox.Controls.Add(_perfOwn);
         root.Controls.Add(perfBox);
 
-        // Uniques
-        root.Controls.Add(UiTheme.SectionHead("Performance uniques"));
+        root.Controls.Add(UiTheme.SectionHead("Performance uniques (career order)"));
         var uniqBox = MakeGroup();
         _uniqNone = MakeRadio("No uniques");
-        _uniqLegit = MakeRadio("Legit uniques (3 in order: Weight → Trans → NOS)", true);
-        _uniqAll = MakeRadio("All uniques");
+        _uniqS3 = MakeRadio("Stage 3 — Engine, Tires, Transmission", true);
+        _uniqS4 = MakeRadio("Stage 4 — + ECU, Turbo, Brakes");
+        _uniqS5 = MakeRadio("Stage 5 — + NOS, Weight, Suspension (all 9)");
         uniqBox.Controls.Add(_uniqNone);
-        uniqBox.Controls.Add(_uniqLegit);
-        uniqBox.Controls.Add(_uniqAll);
+        uniqBox.Controls.Add(_uniqS3);
+        uniqBox.Controls.Add(_uniqS4);
+        uniqBox.Controls.Add(_uniqS5);
         root.Controls.Add(uniqBox);
 
         var btns = new FlowLayoutPanel
@@ -81,9 +79,10 @@ internal sealed class MaxOutOptionsForm : Form
         var apply = UiTheme.Btn("Apply", () =>
         {
             PerfMode = _perfOwn.Checked ? MaxOutPerfMode.OwnOnly : MaxOutPerfMode.InstallExtreme;
-            if (_uniqAll.Checked) UniqueMode = MaxOutUniqueMode.All;
+            if (_uniqS5.Checked) UniqueMode = MaxOutUniqueMode.Stage5;
+            else if (_uniqS4.Checked) UniqueMode = MaxOutUniqueMode.Stage4;
             else if (_uniqNone.Checked) UniqueMode = MaxOutUniqueMode.None;
-            else UniqueMode = MaxOutUniqueMode.Legit3;
+            else UniqueMode = MaxOutUniqueMode.Stage3;
             DialogResult = DialogResult.OK;
             Close();
         }, primary: true);

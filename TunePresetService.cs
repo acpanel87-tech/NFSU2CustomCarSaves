@@ -206,12 +206,37 @@ public static class TunePresetService
                 // Career payload may be bare 54966 or with header — accept exact profile size
                 if (data.Length != Layout.ProfileSize && data.Length != Layout.ProfileSize + Layout.GarageSize)
                     continue;
+
+                // Merge sibling GARAGE.DAT so My Cars (slots 6–10) dynos are harvested too.
+                if (data.Length == Layout.ProfileSize && GarageDatService.LooksLikeCareer(data))
+                {
+                    string? garagePath = FindSiblingGarage(file);
+                    if (garagePath != null)
+                    {
+                        byte[] garage = File.ReadAllBytes(garagePath);
+                        if (GarageDatService.LooksLikeGarage(garage))
+                            data = GarageDatService.Merge(data, garage, GarageState.Loaded);
+                    }
+                }
+
                 string saveName = Path.GetFileName(file);
                 total += HarvestFromSave(data, saveName, verified, skipDedupeWrite: false);
             }
             catch { /* skip bad file */ }
         }
         return total;
+    }
+
+    private static string? FindSiblingGarage(string careerFile)
+    {
+        string? dir = Path.GetDirectoryName(careerFile);
+        if (string.IsNullOrEmpty(dir)) return null;
+        foreach (string name in new[] { "GARAGE.DAT", "garage.dat", "Garage.dat" })
+        {
+            string p = Path.Combine(dir, name);
+            if (File.Exists(p)) return p;
+        }
+        return null;
     }
 
     public static int HarvestFromSave(byte[] working, string saveName, string verified = "imported-save", bool skipDedupeWrite = false)

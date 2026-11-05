@@ -105,7 +105,7 @@ public sealed class CarTuneForm : Form
         }, primary: true);
         var maxTip = new ToolTip();
         maxTip.SetToolTip(maxOut,
-            "Choose install vs own-only, and uniques (none / legit 3 / all). Unlocks cosmetics. Leaves livery + dyno alone.");
+            "Choose install vs own-only, and uniques by stage (3/4/5). Unlocks cosmetics. Leaves livery + dyno alone.");
         maxOut.Margin = new Padding(0, 0, 0, 0);
         head.Controls.Add(_carName, 0, 0);
         head.Controls.Add(_stateBadge, 1, 0);

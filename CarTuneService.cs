@@ -16,13 +16,19 @@ public enum MaxOutPerfMode
     OwnOnly = 1,
 }
 
-/// <summary>MAX OUT unique flags: none, legit first-3 in order, or all nine.</summary>
+/// <summary>
+/// MAX OUT unique flags — career stage unlock order (ScorpioNNN):
+/// Stage 3 Engine/Tires/Trans → Stage 4 ECU/Turbo/Brakes → Stage 5 NOS/Weight/Suspension.
+/// </summary>
 public enum MaxOutUniqueMode
 {
     None = 0,
-    /// <summary>Weight → Transmission → Nitrous (first 3 categories).</summary>
-    Legit3 = 1,
-    All = 2,
+    /// <summary>Stage 3: Engine, Tires, Transmission.</summary>
+    Stage3 = 1,
+    /// <summary>Stage 3+4: + ECU, Turbo, Brakes.</summary>
+    Stage4 = 2,
+    /// <summary>Stage 3+4+5 (= all nine uniques).</summary>
+    Stage5 = 3,
 }
 
 public sealed class PerfCategoryInfo
@@ -312,7 +318,7 @@ public static class CarTuneService
         byte[] working,
         int slot,
         MaxOutPerfMode perfMode = MaxOutPerfMode.InstallExtreme,
-        MaxOutUniqueMode uniqueMode = MaxOutUniqueMode.Legit3)
+        MaxOutUniqueMode uniqueMode = MaxOutUniqueMode.Stage3)
     {
         int baseOff = SlotEditorBase(slot);
         EnsureInRange(working, baseOff);
@@ -329,9 +335,12 @@ public static class CarTuneService
         GarageDatService.UnlockSlot(working, slot);
     }
 
-    /// <summary>
-    /// Legit = first 3 unique categories in order (Weight, Transmission, Nitrous).
-    /// </summary>
+    // Unique category indices (Categories[].UniqueIndex): EN=3, TI=8, TR=1, EC=7, TU=4, BR=6, NO=2, WT=0, SU=5
+    private static readonly int[] UniqueStage3 = [3, 8, 1]; // Engine, Tires, Transmission
+    private static readonly int[] UniqueStage4 = [7, 4, 6]; // ECU, Turbo, Brakes
+    private static readonly int[] UniqueStage5 = [2, 0, 5]; // NOS, Weight, Suspension
+
+    /// <summary>Apply unique flags by career stage order (Scorpio). Does not touch cosmetics.</summary>
     public static void ApplyUniqueMode(byte[] working, int slot, MaxOutUniqueMode mode)
     {
         int baseOff = SlotEditorBase(slot);
@@ -339,15 +348,30 @@ public static class CarTuneService
         for (int i = 0; i < Layout.UniquePerfCount; i++)
             BitConverter.GetBytes(0u).CopyTo(working, baseOff + Layout.UniquePerfOff + i * 4);
 
-        int count = mode switch
+        void On(int[] idxs)
         {
-            MaxOutUniqueMode.None => 0,
-            MaxOutUniqueMode.Legit3 => 3,
-            MaxOutUniqueMode.All => Layout.UniquePerfCount,
-            _ => 0,
-        };
-        for (int i = 0; i < count; i++)
-            BitConverter.GetBytes(1u).CopyTo(working, baseOff + Layout.UniquePerfOff + i * 4);
+            foreach (int i in idxs)
+            {
+                if ((uint)i >= (uint)Layout.UniquePerfCount) continue;
+                BitConverter.GetBytes(1u).CopyTo(working, baseOff + Layout.UniquePerfOff + i * 4);
+            }
+        }
+
+        switch (mode)
+        {
+            case MaxOutUniqueMode.Stage3:
+                On(UniqueStage3);
+                break;
+            case MaxOutUniqueMode.Stage4:
+                On(UniqueStage3);
+                On(UniqueStage4);
+                break;
+            case MaxOutUniqueMode.Stage5:
+                On(UniqueStage3);
+                On(UniqueStage4);
+                On(UniqueStage5);
+                break;
+        }
     }
 
     public static bool IsPartOn(byte[] working, int slot, int partIndex)

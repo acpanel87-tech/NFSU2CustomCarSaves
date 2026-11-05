@@ -723,7 +723,9 @@ public sealed class MainForm : Form
                 catch { /* slot out of range */ }
             }
 
-            _slots.Items.Add($"Slot {s.Index + 1}  {state,-6}  {name}{stats}");
+            // Career = slots 1–5 (profile hex). My Cars = slots 6–10 (GARAGE.DAT body).
+            string group = s.Index < NFSU2CustomCarSaves.Layout.CareerSlotCount ? "Career" : "My Cars";
+            _slots.Items.Add($"{group} {s.Index + 1}  {state,-6}  {name}{stats}");
         }
         if (_slots.Items.Count == 0) return;
         _slots.SelectedIndex = keep >= 0 && keep < _slots.Items.Count ? keep : 0;
@@ -760,7 +762,10 @@ public sealed class MainForm : Form
             string state = s.IsLocked
                 ? "Locked — Unlock first"
                 : s.IsOccupied ? "Filled" : "Empty — Add car / Paste / .carslot";
-            _tip.SetToolTip(lb, CarNames.Tooltip(s.CarHash, $"Slot {s.Index + 1} of 10\nState: {state}"));
+            string group = s.Index < NFSU2CustomCarSaves.Layout.CareerSlotCount
+                ? "Career (profile)"
+                : "My Cars (GARAGE.DAT / menu garage)";
+            _tip.SetToolTip(lb, CarNames.Tooltip(s.CarHash, $"{group}\nSlot {s.Index + 1} of 10\nState: {state}"));
         }
     }
 
@@ -775,28 +780,46 @@ public sealed class MainForm : Form
     private void UpdateDynoStatus()
     {
         _dynoStatus.Text = DynoService.Summarize(DynoService.ClipboardPkg)
-            + "  ·  Copy dyno → open another save → Paste dyno (works on any car)";
+            + "  ·  Copy/Paste dyno works on Career (1–5) and My Cars (6–10)";
     }
 
     private void CopyDyno()
     {
         int src = SelectedSlot();
+        EnsureSlotDynoReadable(src);
         var pkg = DynoService.Export(_session!.Working, src);
         DynoService.CopyToClipboard(pkg);
         UpdateDynoStatus();
-        SetStatus($"Dyno copied: {pkg.SourceCar} (slot {src + 1}) — paste on another save/car");
+        string group = src < NFSU2CustomCarSaves.Layout.CareerSlotCount ? "Career" : "My Cars";
+        SetStatus($"Dyno copied: {pkg.SourceCar} ({group} slot {src + 1}) — paste on Career or My Cars");
     }
 
     private void PasteDyno()
     {
         int dst = SelectedSlot();
+        EnsureSlotDynoReadable(dst);
         var pkg = DynoService.PasteFromClipboard()
                   ?? throw new InvalidOperationException("No dyno copied — use Copy dyno first.");
         DynoService.Apply(_session!.Working, dst, pkg);
         _session.Dirty = true;
         RefreshSlots();
         UpdateDynoStatus();
-        SetStatus($"Dyno pasted → slot {dst + 1} (source: {pkg.SourceCar})");
+        string group = dst < NFSU2CustomCarSaves.Layout.CareerSlotCount ? "Career" : "My Cars";
+        SetStatus($"Dyno pasted → {group} slot {dst + 1} (source: {pkg.SourceCar})");
+    }
+
+    /// <summary>My Cars (6–10) live in GARAGE.DAT — create/attach if the buffer is career-only.</summary>
+    private void EnsureSlotDynoReadable(int slot)
+    {
+        if (slot < NFSU2CustomCarSaves.Layout.CareerSlotCount) return;
+        int need = NFSU2CustomCarSaves.Layout.ExtraSlotRecordBase
+                   + NFSU2CustomCarSaves.Layout.CareerSlotCount * NFSU2CustomCarSaves.Layout.SlotStride;
+        if (_session!.Working.Length >= need) return;
+        _session.EnsureMyCarsGarage();
+        RefreshSlots();
+        if (_session.Working.Length < need)
+            throw new InvalidOperationException(
+                "My Cars (slots 6–10) need GARAGE.DAT. Open a browser zip that includes it.");
     }
 
     private void ApplyPresetQuick()

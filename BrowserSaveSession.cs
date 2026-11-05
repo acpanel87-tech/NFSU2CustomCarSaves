@@ -408,6 +408,9 @@ public sealed class BrowserSaveSession : IDisposable
         f.ShowDialog(owner);
     }
 
+    /// <summary>Ensure My Cars (slots 6–10 / GARAGE.DAT) exist in the working buffer.</summary>
+    public void EnsureMyCarsGarage() => EnsureSlots10();
+
     private void EnsureSlots10()
     {
         if (Working.Length >= Layout.ExtraSlotRecordBase + Layout.CareerSlotCount * Layout.SlotStride)
