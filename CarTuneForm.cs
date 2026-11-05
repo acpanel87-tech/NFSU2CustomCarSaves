@@ -97,14 +97,15 @@ public sealed class CarTuneForm : Form
         _stateBadge.Margin = new Padding(8, 4, 8, 0);
         var maxOut = UiTheme.Btn("MAX OUT", () =>
         {
-            // Extreme performance on car + own/unlock all parts & cosmetics; leave livery/dyno alone.
-            CarTuneService.FullyTune(_working, _slot);
+            using var ask = new MaxOutOptionsForm();
+            if (ask.ShowDialog(this) != DialogResult.OK) return;
+            CarTuneService.FullyTune(_working, _slot, ask.PerfMode, ask.UniqueMode);
             RefreshPerformance();
             _onChanged();
         }, primary: true);
         var maxTip = new ToolTip();
         maxTip.SetToolTip(maxOut,
-            "Install best Extreme performance, own all parts, unlock all cosmetics/shop. Does not change livery or dyno.");
+            "Choose install vs own-only, and uniques (none / legit 3 / all). Unlocks cosmetics. Leaves livery + dyno alone.");
         maxOut.Margin = new Padding(0, 0, 0, 0);
         head.Controls.Add(_carName, 0, 0);
         head.Controls.Add(_stateBadge, 1, 0);

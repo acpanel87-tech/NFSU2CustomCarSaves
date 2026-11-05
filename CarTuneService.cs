@@ -9,6 +9,22 @@ public enum TuneLevel
     Extreme = 3,
 }
 
+/// <summary>MAX OUT: install Extreme packages, or only own/unlock them.</summary>
+public enum MaxOutPerfMode
+{
+    InstallExtreme = 0,
+    OwnOnly = 1,
+}
+
+/// <summary>MAX OUT unique flags: none, legit first-3 in order, or all nine.</summary>
+public enum MaxOutUniqueMode
+{
+    None = 0,
+    /// <summary>Weight → Transmission → Nitrous (first 3 categories).</summary>
+    Legit3 = 1,
+    All = 2,
+}
+
 public sealed class PerfCategoryInfo
 {
     public required string Code { get; init; }
@@ -288,21 +304,50 @@ public static class CarTuneService
     }
 
     /// <summary>
-    /// MAX OUT: put Extreme performance (best non-conflicting packages + uniques) on the car,
-    /// own every performance package, and unlock all shop/cosmetics inventory.
+    /// MAX OUT: own/unlock all parts + cosmetics shop. Optionally install Extreme packages.
+    /// Unique flags follow <paramref name="uniqueMode"/> (none / legit 3-in-order / all).
     /// Does not change body/livery visuals or dyno.
     /// </summary>
-    public static void FullyTune(byte[] working, int slot)
+    public static void FullyTune(
+        byte[] working,
+        int slot,
+        MaxOutPerfMode perfMode = MaxOutPerfMode.InstallExtreme,
+        MaxOutUniqueMode uniqueMode = MaxOutUniqueMode.Legit3)
     {
         int baseOff = SlotEditorBase(slot);
         EnsureInRange(working, baseOff);
 
-        // Best-of-best performance on the car (respects package conflicts).
-        SetLevel(working, slot, TuneLevel.Extreme);
-        // Own every package in inventory + unlock cosmetics/shop tables.
+        if (perfMode == MaxOutPerfMode.InstallExtreme)
+        {
+            // Best packages on the car (SetLevel also flips uniques — we override next).
+            SetLevel(working, slot, TuneLevel.Extreme);
+        }
+
+        ApplyUniqueMode(working, slot, uniqueMode);
         OwnAllPackageBits(working, baseOff);
         SetShopUnlocks(working, slot, on: true);
         GarageDatService.UnlockSlot(working, slot);
+    }
+
+    /// <summary>
+    /// Legit = first 3 unique categories in order (Weight, Transmission, Nitrous).
+    /// </summary>
+    public static void ApplyUniqueMode(byte[] working, int slot, MaxOutUniqueMode mode)
+    {
+        int baseOff = SlotEditorBase(slot);
+        EnsureInRange(working, baseOff);
+        for (int i = 0; i < Layout.UniquePerfCount; i++)
+            BitConverter.GetBytes(0u).CopyTo(working, baseOff + Layout.UniquePerfOff + i * 4);
+
+        int count = mode switch
+        {
+            MaxOutUniqueMode.None => 0,
+            MaxOutUniqueMode.Legit3 => 3,
+            MaxOutUniqueMode.All => Layout.UniquePerfCount,
+            _ => 0,
+        };
+        for (int i = 0; i < count; i++)
+            BitConverter.GetBytes(1u).CopyTo(working, baseOff + Layout.UniquePerfOff + i * 4);
     }
 
     public static bool IsPartOn(byte[] working, int slot, int partIndex)
