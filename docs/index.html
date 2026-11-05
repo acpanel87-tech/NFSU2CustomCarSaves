@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NFSU2 CCS 0.1.0.7</title>
+  <meta name="description" content="Run by one person. Built for the Underground 2 community, dynos, liveries, custom saves, and more without the noise." />
+  <meta name="theme-color" content="#07040f" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="NFSU2 CCS" />
+  <meta property="og:title" content="NFSU2 CCS 0.1.0.7" />
+  <meta property="og:description" content="Run by one person. Built for the Underground 2 community, dynos, liveries, custom saves, and more without the noise." />
+  <meta property="og:url" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/" />
+  <meta property="og:image" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=28" />
+  <meta property="og:image:secure_url" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=28" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1024" />
+  <meta property="og:image:height" content="313" />
+  <meta property="og:image:alt" content="NFSU2 Custom Car Saves - CCS" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="NFSU2 CCS 0.1.0.7" />
+  <meta name="twitter:description" content="Run by one person. Built for the Underground 2 community, dynos, liveries, custom saves, and more without the noise." />
+  <meta name="twitter:image" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=28" />
+  <link rel="image_src" href="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=28" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Sora:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg0: #05030c;
+      --bg1: #140822;
+      --ink: #f4eefc;
+      --muted: #b7a8cc;
+      --line: rgba(255, 255, 255, 0.12);
+      --cyan: #45e7ff;
+      --magenta: #ff6ad5;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Sora", sans-serif;
+      background:
+        radial-gradient(1200px 700px at 50% -10%, rgba(90, 30, 140, 0.45), transparent 60%),
+        radial-gradient(900px 500px at 85% 90%, rgba(180, 40, 110, 0.22), transparent 55%),
+        radial-gradient(700px 400px at 10% 80%, rgba(40, 120, 180, 0.18), transparent 50%),
+        linear-gradient(180deg, var(--bg1), var(--bg0));
+      overflow-x: hidden;
+    }
+
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 12% 22%, rgba(255,255,255,.7) 50%, transparent 51%),
+        radial-gradient(1px 1px at 28% 68%, rgba(255,255,255,.55) 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 44% 18%, rgba(255,255,255,.8) 50%, transparent 51%),
+        radial-gradient(1px 1px at 61% 74%, rgba(255,255,255,.5) 50%, transparent 51%),
+        radial-gradient(1px 1px at 73% 31%, rgba(255,255,255,.65) 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 88% 58%, rgba(255,255,255,.75) 50%, transparent 51%),
+        radial-gradient(1px 1px at 19% 84%, rgba(255,255,255,.45) 50%, transparent 51%),
+        radial-gradient(1px 1px at 52% 49%, rgba(255,255,255,.55) 50%, transparent 51%);
+      opacity: .55;
+      animation: drift 18s linear infinite;
+    }
+
+    @keyframes drift {
+      from { transform: translateY(0); }
+      to { transform: translateY(-18px); }
+    }
+
+    .wrap {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 16px 16px;
+    }
+
+    .panel {
+      width: min(560px, 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-align: center;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      animation: rise .7s ease both;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .logo {
+      width: min(420px, 92%);
+      height: auto;
+      display: block;
+      margin: 0;
+      filter: drop-shadow(0 12px 28px rgba(69, 231, 255, .18));
+      animation: glow 3.2s ease-in-out infinite;
+    }
+
+    @keyframes glow {
+      0%, 100% { filter: drop-shadow(0 12px 28px rgba(69, 231, 255, .16)); }
+      50% { filter: drop-shadow(0 14px 36px rgba(255, 106, 213, .22)); }
+    }
+
+    .brand {
+      font-family: "Orbitron", sans-serif;
+      font-weight: 700;
+      letter-spacing: .06em;
+      font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+      margin: 0;
+      background: linear-gradient(90deg, var(--cyan), #fff, var(--magenta));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 32rem;
+      width: 100%;
+      color: var(--muted);
+      font-size: .92rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 2px 0 0;
+    }
+
+    .btn {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: .95rem;
+      padding: 12px 20px;
+      border-radius: 999px;
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .btn-primary {
+      color: #120817;
+      background: linear-gradient(120deg, var(--cyan), #9af, var(--magenta));
+    }
+    .btn-ghost {
+      color: var(--ink);
+      background: transparent;
+      border: 1px solid var(--line);
+    }
+
+    .countdown {
+      margin: 4px 0 0;
+      width: 100%;
+      color: var(--ink);
+      font-size: .88rem;
+      text-align: center;
+    }
+    .countdown strong {
+      font-family: "Orbitron", sans-serif;
+      color: var(--cyan);
+      letter-spacing: .04em;
+    }
+
+    .bar {
+      width: min(280px, 80%);
+      height: 4px;
+      margin: 0;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      overflow: hidden;
+    }
+    .bar > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--cyan), var(--magenta));
+      animation: fill 10s linear forwards;
+    }
+    @keyframes fill { to { width: 100%; } }
+
+    .credits {
+      margin: 6px 0 0;
+      max-width: 32rem;
+      width: 100%;
+      font-size: .82rem;
+      color: #e8dff4;
+      line-height: 1.4;
+      text-align: center;
+    }
+    .credits strong { color: var(--cyan); font-weight: 600; }
+
+    .fine {
+      margin: 0;
+      max-width: 32rem;
+      width: 100%;
+      font-size: .74rem;
+      color: rgba(183, 168, 204, .85);
+      line-height: 1.4;
+      text-align: center;
+    }
+    .fine a { color: #9ef; }
+  </style>
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <div class="wrap">
+    <main class="panel">
+      <img class="logo" src="ccs-logo.png?v=28" width="1024" height="313" alt="NFSU2 Custom Car Saves - CCS" />
+
+      <h1 class="brand">NFSU2 CCS 0.1.0.7</h1>
+      <p class="lead">
+        Run by one person. Built for the Underground 2 community, dynos, liveries, custom saves, and more without the noise.
+      </p>
+
+      <div class="actions">
+        <a class="btn btn-primary" id="go" href="https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/tag/v0.1.0-beta.7">
+          Open release now
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/download/v0.1.0-beta.7/NFSU2CustomCarSaves-0.1.0-beta.7.zip">
+          Download zip
+        </a>
+      </div>
+
+      <p class="countdown">Taking you to the release in <strong id="sec">10</strong>s</p>
+      <div class="bar" aria-hidden="true"><span></span></div>
+
+      <p class="credits">
+        Made with &#10084;&#65039; by <strong>Barkie</strong>&#10024;<br />
+        Credits &amp; Discord: <strong>@extrabarkie</strong>
+      </p>
+      <p class="fine">Not affiliated with EA / Black Box.</p>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      var release = "https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/tag/v0.1.0-beta.7";
+      var left = 10;
+      var el = document.getElementById("sec");
+      var timer = setInterval(function () {
+        left -= 1;
+        if (el) el.textContent = String(Math.max(left, 0));
+        if (left <= 0) {
+          clearInterval(timer);
+          window.location.href = release;
+        }
+      }, 1000);
+    })();
+  </script>
+</body>
+</html>

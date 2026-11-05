@@ -1,0 +1,42 @@
+# Build
+bin/
+obj/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rtifacts/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+.vscode/
+
+# NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+project.lock.json
+project.fragment.lock.json
+
+# Local runtime / personal data (stock lives in Presets/)
+Data/
+*.bak*
+dyno_clipboard.json
+roam_flag.txt
+
+# Pack / release artifacts
+*.zip
+CCS_beta_*/
+CustomCarSaves_Beta_*/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

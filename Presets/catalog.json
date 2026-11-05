@@ -1,0 +1,282 @@
+﻿{
+    "format":  "nfsu2-tune-presets-v1",
+    "generated":  "2026-11-05T13:50:28.1897685+01:00",
+    "note":  "Presets use only legal dyno bytes (0-200). Community entries extracted from known career saves that load in-game. Values are relative to installed parts — Extreme recommended.",
+    "presets":  [
+                    {
+                        "id":  "parts-stock",
+                        "name":  "Parts: Stock",
+                        "category":  "parts",
+                        "kind":  "parts",
+                        "parts_level":  "Stock",
+                        "dyno_hex":  null,
+                        "source":  "built-in",
+                        "note":  "Reset performance flags to stock.",
+                        "verified":  "engine"
+                    },
+                    {
+                        "id":  "parts-street",
+                        "name":  "Parts: Street",
+                        "category":  "parts",
+                        "kind":  "parts",
+                        "parts_level":  "Street",
+                        "dyno_hex":  null,
+                        "source":  "built-in",
+                        "note":  "Street package level.",
+                        "verified":  "engine"
+                    },
+                    {
+                        "id":  "parts-pro",
+                        "name":  "Parts: Pro",
+                        "category":  "parts",
+                        "kind":  "parts",
+                        "parts_level":  "Pro",
+                        "dyno_hex":  null,
+                        "source":  "built-in",
+                        "note":  "Pro package level.",
+                        "verified":  "engine"
+                    },
+                    {
+                        "id":  "parts-extreme",
+                        "name":  "Parts: Extreme",
+                        "category":  "parts",
+                        "kind":  "parts",
+                        "parts_level":  "Extreme",
+                        "dyno_hex":  null,
+                        "source":  "built-in",
+                        "note":  "Extreme packages.",
+                        "verified":  "engine"
+                    },
+                    {
+                        "id":  "parts-full",
+                        "name":  "Parts: FULLY TUNED",
+                        "category":  "parts",
+                        "kind":  "parts",
+                        "parts_level":  "Fully",
+                        "dyno_hex":  null,
+                        "source":  "built-in",
+                        "note":  "Extreme + unique + shop unlocks.",
+                        "verified":  "engine"
+                    },
+                    {
+                        "id":  "dyno-stock",
+                        "name":  "Dyno: Stock midpoint (all 100)",
+                        "category":  "dyno",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "64646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464",
+                        "source":  "hackch-spec",
+                        "note":  "Relative stock midpoint (byte 100). Correct for ECU + turbo curves and gears; clamps to installed part ranges.",
+                        "verified":  "byte-spec"
+                    },
+                    {
+                        "id":  "dyno-drag",
+                        "name":  "Dyno: Drag attack (all events)",
+                        "category":  "dyno",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "646464646464646464A096918C877D738C3C6E786E6464788CA0B4C8BEAA96826E8296AABEC8B4A08C646464646464646464A096918C877D738C3C6E786E6464788CA0B4C8BEAA96826E8296AABEC8B4A08C646464646464646464A096918C877D738C3C6E786E6464788CA0B4C8BEAA96826E8296AABEC8B4A08C646464646464646464A096918C877D738C3C6E786E6464788CA0B4C8BEAA96826E8296AABEC8B4A08C646464646464646464A096918C877D738C3C6E786E6464788CA0B4C8BEAA96826E8296AABEC8B4A08C",
+                        "source":  "built-in",
+                        "note":  "Aggressive FD/gears + high ECU/turbo. Safe bytes; best with Extreme parts.",
+                        "verified":  "byte-spec"
+                    },
+                    {
+                        "id":  "dyno-topspeed",
+                        "name":  "Dyno: Top speed tall gears",
+                        "category":  "dyno",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "646464646464646464283C46505A646E64646464646464646E788CA0B4BEC8C8646E8296AABEC8C8BE646464646464646464283C46505A646E64646464646464646E788CA0B4BEC8C8646E8296AABEC8C8BE646464646464646464283C46505A646E64646464646464646E788CA0B4BEC8C8646E8296AABEC8C8BE646464646464646464283C46505A646E64646464646464646E788CA0B4BEC8C8646E8296AABEC8C8BE646464646464646464283C46505A646E64646464646464646E788CA0B4BEC8C8646E8296AABEC8C8BE",
+                        "source":  "built-in",
+                        "note":  "Taller gearing + high-end power curve.",
+                        "verified":  "byte-spec"
+                    },
+                    {
+                        "id":  "dyno-drift",
+                        "name":  "Dyno: Drift soft / rear bias",
+                        "category":  "dyno",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "281E32284632508C6464646464646464646450468C3C78646E78828C968C8278646E78828C968C8278281E32284632508C6464646464646464646450468C3C78646E78828C968C8278646E78828C968C8278281E32284632508C6464646464646464646450468C3C78646E78828C968C8278646E78828C968C8278281E32284632508C6464646464646464646450468C3C78646E78828C968C8278646E78828C968C8278281E32284632508C6464646464646464646450468C3C78646E78828C968C8278646E78828C968C8278",
+                        "source":  "built-in",
+                        "note":  "Softer suspension, rear grip bias.",
+                        "verified":  "byte-spec"
+                    },
+                    {
+                        "id":  "dyno-circuit",
+                        "name":  "Dyno: Circuit balanced",
+                        "category":  "dyno",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "787882827D7D5A6E646E73706E6C6964646469827D8C826E788CA0AAA5968C826E7D91A5B4AFA09182787882827D7D5A6E646E73706E6C6964646469827D8C826E788CA0AAA5968C826E7D91A5B4AFA09182787882827D7D5A6E646E73706E6C6964646469827D8C826E788CA0AAA5968C826E7D91A5B4AFA09182787882827D7D5A6E646E73706E6C6964646469827D8C826E788CA0AAA5968C826E7D91A5B4AFA09182787882827D7D5A6E646E73706E6C6964646469827D8C826E788CA0AAA5968C826E7D91A5B4AFA09182",
+                        "source":  "built-in",
+                        "note":  "Balanced handling + mid/high power band.",
+                        "verified":  "byte-spec"
+                    },
+                    {
+                        "id":  "dyno-maxpwr",
+                        "name":  "Dyno: Max ECU/Turbo (stock gears)",
+                        "category":  "dyno",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "64646464646464646464646464646464A0286464646464A0AAB4BEC8C8BEB4AA96A0AFBEC8C8BEB4AA64646464646464646464646464646464A0286464646464A0AAB4BEC8C8BEB4AA96A0AFBEC8C8BEB4AA64646464646464646464646464646464A0286464646464A0AAB4BEC8C8BEB4AA96A0AFBEC8C8BEB4AA64646464646464646464646464646464A0286464646464A0AAB4BEC8C8BEB4AA96A0AFBEC8C8BEB4AA64646464646464646464646464646464A0286464646464A0AAB4BEC8C8BEB4AA96A0AFBEC8C8BEB4AA",
+                        "source":  "built-in",
+                        "note":  "Only ECU/turbo/NOS pushed; gearing left mid.",
+                        "verified":  "byte-spec"
+                    },
+                    {
+                        "id":  "joey-1",
+                        "name":  "Community: Joey Skyline A",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "586485886464649173586464646464645A6E6A64646464891B4F56647964737B6D7236278A8A7864646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464",
+                        "source":  "Joey career save",
+                        "note":  "In-game tuned Skyline dyno (slot1). Extracted from known-good Joey career.",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "joey-2",
+                        "name":  "Community: Joey Skyline B (draggy)",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "716B96B77B6B73C07CA79C6B5839476432966464647564704C3E6564746467776D6E383B758A7864646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464",
+                        "source":  "Joey career save",
+                        "note":  "Joey slot2 — higher peaks (max 192).",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "joey-3",
+                        "name":  "Community: Joey Skyline C",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "716B96B77B6B73C0668E9C8C7B7978A646828E64647B6C413E637C767464687764642D388A8A7864646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464",
+                        "source":  "Joey career save",
+                        "note":  "Joey slot3.",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "joey-4",
+                        "name":  "Community: Joey Skyline D",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "6A6491A9493A4388796464646464646464644364646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464716B96B77B6B73C0966138393C3947645A6E9064648C6476695A5D526A575C70646442606F7D6E5D59",
+                        "source":  "Joey career save",
+                        "note":  "Joey slot4.",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "joey-5",
+                        "name":  "Community: Joey Skyline E",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "615B797F6C5B588885A69C735852476464646D64648C64265F647D787464687764642D358A8A7864646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464",
+                        "source":  "Joey career save",
+                        "note":  "Joey slot5.",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "ecu-corolla",
+                        "name":  "Modding: ecutn1b Corolla (full range)",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "0D070F40710725C0966464646464646464647F6464956C26261F120A006E64706464382626268A78640D070F40710725C096477167777B88646464646464310826261F120A646E647064643826268A8A78640D070F400D07255C96853864646464696464640049956C26261F120A646E647064643826268A8A78640D0773400D07895C96969C97A09DABC864647F6464956C26261F120A006E64706464382626268A78640D070F40710725C096603858737587C764647F6464956C26261F120A006E64706464382626268A7864",
+                        "source":  "Need for Speed U2 SAVE MODDING/ecutn1b",
+                        "note":  "Aggressive ECU tune save (0–200). Known modding dump.",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "ecu-slot2",
+                        "name":  "Modding: ecutn1b slot2",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "0D070F5C15070F5C9686386C788AAB646464646464876C26261F007A8988646C6426260000646464640D070FC015070FC0963E6E798297B8646464646464230826261F007A8988646C6426260000646464640D070F5C15070F5C96985C9DA07E8A646464646449876C262683647A7488646C6426260000646464640D070F5C15070F5C96987A9D98A18A646464646464876C26261F007A8988646C6426260000646464640D070F5C15070F5C9698386C788AAB646464646464876C26261F007A8988646C642626000064646464",
+                        "source":  "ecutn1b",
+                        "note":  "From ecutn1b career slot2.",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "ecu-240sx",
+                        "name":  "Modding: ecutn1b 240SX",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "0D070F561307285C96513E586B676AA16464646464976C262626261729426F6F64642D2626268A64650D070FBA1307285C964A7A646F6B6D646464646464336C262626267B64326F6F64642D2626268A64650D070F561307285C96AE45788E6161836464610049976C262626267B64326F6F64642D2626268A64650D070F561307285C96AE87858D8CABC86464646464976C262626261729426F6F64642D2626268A64650D070F561307285C96AE3858646470C86464646464976C262626261729426F6F64642D2626268A6465",
+                        "source":  "ecutn1b",
+                        "note":  "240SX dyno from ecutn1b.",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "ecu-golf",
+                        "name":  "Modding: ecutn1b Golf",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "1B0719550D070F5C9650385E6F7383C86464646464846C261C008A8A7864828A64382626265878647B7F6B7D55716B73C096653F4B5D61646464646464642008261C008A8A7864828A64382626265878647B1B0719550D070F5C969C4A74939DABC8646464643D846C261C008A8A7864828A64382626265878647A1B0719550D070F5C969C6F82949DAB646464646464846C261C008A8A7864828A64382626265878647B1B0719550D070F5C969C385E757C89C86464646464846C261C008A8A7864828A64382626265878647B",
+                        "source":  "ecutn1b",
+                        "note":  "Golf dyno from ecutn1b.",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "ecu-corolla2",
+                        "name":  "Modding: ecutn1b Corolla B",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "0D070F40710725C096646464646464646464886464926C266683766E646E6470646438265E8A8A7860646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464640D0773400D07895C96646464646464646464886464926C266683766E646E6470646438265D8A8A78600D070F40710725C096646464646464646464886464926C266783766E646E6470646438265C8A8A7860",
+                        "source":  "ecutn1b",
+                        "note":  "Second Corolla setup from ecutn1b.",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "jane-240sx",
+                        "name":  "Template: JANE 240SX mild",
+                        "category":  "community",
+                        "kind":  "dyno",
+                        "parts_level":  null,
+                        "dyno_hex":  "6464646464646764646464646464646482466464646464646464646464646464646464646464646464646464676464646A646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464",
+                        "source":  "JANE template",
+                        "note":  "Mild factory-ish dyno from JANE template.",
+                        "verified":  "local-save"
+                    },
+                    {
+                        "id":  "combo-full-drag",
+                        "name":  "COMBO: Fully tuned + Drag dyno",
+                        "category":  "combo",
+                        "kind":  "full",
+                        "parts_level":  "Fully",
+                        "dyno_hex":  "646464646464646464A096918C877D738C3C6E786E6464788CA0B4C8BEAA96826E8296AABEC8B4A08C646464646464646464A096918C877D738C3C6E786E6464788CA0B4C8BEAA96826E8296AABEC8B4A08C646464646464646464A096918C877D738C3C6E786E6464788CA0B4C8BEAA96826E8296AABEC8B4A08C646464646464646464A096918C877D738C3C6E786E6464788CA0B4C8BEAA96826E8296AABEC8B4A08C646464646464646464A096918C877D738C3C6E786E6464788CA0B4C8BEAA96826E8296AABEC8B4A08C",
+                        "source":  "built-in",
+                        "note":  "Extreme parts + drag dyno in one click.",
+                        "verified":  "engine+byte-spec"
+                    },
+                    {
+                        "id":  "combo-full-joey2",
+                        "name":  "COMBO: Fully tuned + Joey Skyline B",
+                        "category":  "combo",
+                        "kind":  "full",
+                        "parts_level":  "Fully",
+                        "dyno_hex":  "716B96B77B6B73C07CA79C6B5839476432966464647564704C3E6564746467776D6E383B758A7864646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464",
+                        "source":  "Joey+engine",
+                        "note":  "Max parts + proven Joey dyno B.",
+                        "verified":  "local-save+engine"
+                    },
+                    {
+                        "id":  "combo-full-ecu",
+                        "name":  "COMBO: Fully tuned + ecutn1b Corolla dyno",
+                        "category":  "combo",
+                        "kind":  "full",
+                        "parts_level":  "Fully",
+                        "dyno_hex":  "0D070F40710725C0966464646464646464647F6464956C26261F120A006E64706464382626268A78640D070F40710725C096477167777B88646464646464310826261F120A646E647064643826268A8A78640D070F400D07255C96853864646464696464640049956C26261F120A646E647064643826268A8A78640D0773400D07895C96969C97A09DABC864647F6464956C26261F120A006E64706464382626268A78640D070F40710725C096603858737587C764647F6464956C26261F120A006E64706464382626268A7864",
+                        "source":  "ecutn1b+engine",
+                        "note":  "Max parts + aggressive modding dyno.",
+                        "verified":  "local-save+engine"
+                    }
+                ]
+}
