@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>NFSU2CustomCarSaves</RootNamespace>
+    <AssemblyName>NFSU2CustomCarSaves</AssemblyName>
+    <AssemblyTitle>Custom Car Saves</AssemblyTitle>
+    <Product>Custom Car Saves</Product>
+    <Version>1.0.0</Version>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <NoWarn>$(NoWarn);NU1902</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Wipe-All.bat" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates\JANE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates\settings.ini" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\ccs-logo.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\flags\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Presets\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="DYNO SAVES\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="car-donors.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SharpCompress" Version="0.41.0" />
+  </ItemGroup>
+
+</Project>
