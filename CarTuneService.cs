@@ -288,21 +288,17 @@ public static class CarTuneService
     }
 
     /// <summary>
-    /// hackch-style MAX OUT: enable every active package flag (0–55), all uniques, shop unlocks.
-    /// Conflicts are ignored here so category bars can reach full (e.g. 6/6 weight).
+    /// MAX OUT / own-all: unlock shop + mark every performance package as owned
+    /// (same idea as cosmetics — available in inventory, not force-installed on the car).
+    /// Does not flip installed part flags or unique flags; dyno is untouched.
     /// </summary>
     public static void FullyTune(byte[] working, int slot)
     {
         int baseOff = SlotEditorBase(slot);
         EnsureInRange(working, baseOff);
 
-        foreach (int idx in PartLevel.Keys)
-            working[baseOff + Layout.PerfOff + idx] = 1;
-
-        for (int i = 0; i < Layout.UniquePerfCount; i++)
-            BitConverter.GetBytes(1u).CopyTo(working, baseOff + Layout.UniquePerfOff + i * 4);
-
-        MarkPurchasedBits(working, baseOff);
+        // Own every package bit (0–55) without installing them on the car.
+        OwnAllPackageBits(working, baseOff);
         SetShopUnlocks(working, slot, on: true);
         GarageDatService.UnlockSlot(working, slot);
     }
@@ -412,7 +408,7 @@ public static class CarTuneService
     {
         if (factor < 1.1) SetLevel(working, slot, TuneLevel.Street);
         else if (factor < 1.6) SetLevel(working, slot, TuneLevel.Pro);
-        else FullyTune(working, slot);
+        else SetLevel(working, slot, TuneLevel.Extreme);
     }
 
     private static void EnablePart(byte[] working, int baseOff, int index)
@@ -423,6 +419,16 @@ public static class CarTuneService
                 working[baseOff + Layout.PerfOff + b] = 0;
         }
         working[baseOff + Layout.PerfOff + index] = 1;
+    }
+
+    private static void OwnAllPackageBits(byte[] working, int baseOff)
+    {
+        foreach (int idx in PartLevel.Keys)
+        {
+            int byteOff = baseOff + Layout.PerfPurchaseOff + (idx >> 3);
+            if (byteOff >= working.Length) continue;
+            working[byteOff] |= (byte)(1 << (idx & 7));
+        }
     }
 
     private static void MarkPurchasedBits(byte[] working, int baseOff)
