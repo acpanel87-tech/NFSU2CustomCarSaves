@@ -95,16 +95,16 @@ public sealed class CarTuneForm : Form
         _stateBadge.BackColor = UiTheme.Elevated;
         _stateBadge.ForeColor = UiTheme.Primary;
         _stateBadge.Margin = new Padding(8, 4, 8, 0);
-        var maxOut = UiTheme.Btn("OWN ALL", () =>
+        var maxOut = UiTheme.Btn("MAX OUT", () =>
         {
-            // Own/unlock every package + shop (like cosmetics) — do not install on the car.
+            // Extreme performance on car + own/unlock all parts & cosmetics; leave livery/dyno alone.
             CarTuneService.FullyTune(_working, _slot);
             RefreshPerformance();
             _onChanged();
         }, primary: true);
-        // Keep old name discoverable for beta testers who looked for MAX OUT.
         var maxTip = new ToolTip();
-        maxTip.SetToolTip(maxOut, "Own all performance parts + unlock shop (does not install them). Dyno unchanged.");
+        maxTip.SetToolTip(maxOut,
+            "Install best Extreme performance, own all parts, unlock all cosmetics/shop. Does not change livery or dyno.");
         maxOut.Margin = new Padding(0, 0, 0, 0);
         head.Controls.Add(_carName, 0, 0);
         head.Controls.Add(_stateBadge, 1, 0);

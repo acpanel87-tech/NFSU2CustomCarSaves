@@ -288,16 +288,18 @@ public static class CarTuneService
     }
 
     /// <summary>
-    /// MAX OUT / own-all: unlock shop + mark every performance package as owned
-    /// (same idea as cosmetics — available in inventory, not force-installed on the car).
-    /// Does not flip installed part flags or unique flags; dyno is untouched.
+    /// MAX OUT: put Extreme performance (best non-conflicting packages + uniques) on the car,
+    /// own every performance package, and unlock all shop/cosmetics inventory.
+    /// Does not change body/livery visuals or dyno.
     /// </summary>
     public static void FullyTune(byte[] working, int slot)
     {
         int baseOff = SlotEditorBase(slot);
         EnsureInRange(working, baseOff);
 
-        // Own every package bit (0–55) without installing them on the car.
+        // Best-of-best performance on the car (respects package conflicts).
+        SetLevel(working, slot, TuneLevel.Extreme);
+        // Own every package in inventory + unlock cosmetics/shop tables.
         OwnAllPackageBits(working, baseOff);
         SetShopUnlocks(working, slot, on: true);
         GarageDatService.UnlockSlot(working, slot);
@@ -408,7 +410,7 @@ public static class CarTuneService
     {
         if (factor < 1.1) SetLevel(working, slot, TuneLevel.Street);
         else if (factor < 1.6) SetLevel(working, slot, TuneLevel.Pro);
-        else SetLevel(working, slot, TuneLevel.Extreme);
+        else FullyTune(working, slot);
     }
 
     private static void EnablePart(byte[] working, int baseOff, int index)
