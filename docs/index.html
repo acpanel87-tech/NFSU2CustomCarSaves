@@ -12,8 +12,8 @@
   <meta property="og:title" content="NFSU2 CCS 0.1.0.7c" />
   <meta property="og:description" content="Run by one person. Built for the Underground 2 community, dynos, liveries, custom saves, and more without the noise." />
   <meta property="og:url" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/" />
-  <meta property="og:image" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=30" />
-  <meta property="og:image:secure_url" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=30" />
+  <meta property="og:image" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=31" />
+  <meta property="og:image:secure_url" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=31" />
   <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1024" />
   <meta property="og:image:height" content="313" />
@@ -22,8 +22,8 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="NFSU2 CCS 0.1.0.7c" />
   <meta name="twitter:description" content="Run by one person. Built for the Underground 2 community, dynos, liveries, custom saves, and more without the noise." />
-  <meta name="twitter:image" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=30" />
-  <link rel="image_src" href="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=30" />
+  <meta name="twitter:image" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=31" />
+  <link rel="image_src" href="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=31" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -228,23 +228,23 @@
   <div class="stars" aria-hidden="true"></div>
   <div class="wrap">
     <main class="panel">
-      <img class="logo" src="ccs-logo.png?v=30" width="1024" height="313" alt="NFSU2 Custom Car Saves - CCS" />
+      <img class="logo" src="ccs-logo.png?v=31" width="1024" height="313" alt="NFSU2 Custom Car Saves - CCS" />
 
-      <h1 class="brand">NFSU2 CCS 0.1.0.7c</h1>
+      <h1 class="brand" id="brand">NFSU2 CCS</h1>
       <p class="lead">
         Run by one person. Built for the Underground 2 community, dynos, liveries, custom saves, and more without the noise.
       </p>
 
       <div class="actions">
-        <a class="btn btn-primary" id="go" href="https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/tag/v0.1.0-beta.7c">
+        <a class="btn btn-primary" id="go" href="https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases">
           Open release now
         </a>
-        <a class="btn btn-ghost" href="https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/download/v0.1.0-beta.7c/NFSU2CustomCarSaves-0.1.0-beta.7c.zip">
+        <a class="btn btn-ghost" id="dl" href="https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases">
           Download zip
         </a>
       </div>
 
-      <p class="countdown">Taking you to the release in <strong id="sec">10</strong>s</p>
+      <p class="countdown">Taking you to the latest release in <strong id="sec">10</strong>s</p>
       <div class="bar" aria-hidden="true"><span></span></div>
 
       <p class="credits">
@@ -257,7 +257,48 @@
 
   <script>
     (function () {
-      var release = "https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/tag/v0.1.0-beta.7c";
+      // Always resolve the newest GitHub release (including prereleases).
+      // /releases/latest ignores betas — so we hit the releases list API instead.
+      var go = document.getElementById("go");
+      var dl = document.getElementById("dl");
+      var brand = document.getElementById("brand");
+      var releaseUrl = "https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases";
+      var ready = false;
+
+      function prettyName(rel) {
+        if (!rel) return "NFSU2 CCS";
+        if (rel.name && /nfsu2/i.test(rel.name)) return rel.name;
+        var tag = (rel.tag_name || "").replace(/^v/i, "");
+        return tag ? ("NFSU2 CCS " + tag.replace(/^0\.1\.0-beta\./i, "0.1.0.").replace(/-beta\./i, ".")) : "NFSU2 CCS";
+      }
+
+      function applyRelease(rel) {
+        if (!rel || !rel.html_url) return;
+        releaseUrl = rel.html_url;
+        ready = true;
+        if (go) go.href = releaseUrl;
+        var name = prettyName(rel);
+        if (brand) brand.textContent = name;
+        document.title = name;
+        if (dl && Array.isArray(rel.assets)) {
+          var zip = null;
+          for (var i = 0; i < rel.assets.length; i++) {
+            if (/\.zip$/i.test(rel.assets[i].name || "")) { zip = rel.assets[i]; break; }
+          }
+          if (zip && zip.browser_download_url) dl.href = zip.browser_download_url;
+          else dl.href = releaseUrl;
+        }
+      }
+
+      fetch("https://api.github.com/repos/acpanel87-tech/NFSU2CustomCarSaves/releases?per_page=1", {
+        headers: { "Accept": "application/vnd.github+json" }
+      })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (list) {
+          if (Array.isArray(list) && list[0]) applyRelease(list[0]);
+        })
+        .catch(function () { /* keep /releases fallback */ });
+
       var left = 10;
       var el = document.getElementById("sec");
       var timer = setInterval(function () {
@@ -265,7 +306,7 @@
         if (el) el.textContent = String(Math.max(left, 0));
         if (left <= 0) {
           clearInterval(timer);
-          window.location.href = release;
+          window.location.href = releaseUrl;
         }
       }, 1000);
     })();
