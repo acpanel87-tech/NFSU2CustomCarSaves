@@ -11,6 +11,16 @@
 
 Self-contained **Windows x64** — no separate .NET install. Keep the whole folder together (do not move only the `.exe`).
 
+```
+NFSU2CustomCarSaves/
+  NFSU2CustomCarSaves.exe
+  README.txt
+  Assets/     UI + flags
+  Data/       your libraries (writable)
+  Stock/      Presets, DynoSaves, Templates, Stats
+  Tools/      Wipe-All.bat
+```
+
 ## Preview
 
 ![Main + Performance](Release%20Images/image3.png)

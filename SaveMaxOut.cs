@@ -267,13 +267,8 @@ public static class SaveMaxOut
                 return data;
         }
         throw new FileNotFoundException(
-            "Jane template missing (Templates/JANE). Reinstall or copy Jane next to the app.");
+            "Jane template missing (Stock/Templates/JANE). Reinstall or copy Jane into Stock/Templates.");
     }
 
-    private static IEnumerable<string> JaneCandidates()
-    {
-        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "JANE");
-        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "Jane");
-        yield return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Templates", "JANE"));
-    }
+    private static IEnumerable<string> JaneCandidates() => AppPaths.JaneCareerCandidates();
 }

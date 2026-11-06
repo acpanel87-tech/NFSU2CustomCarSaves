@@ -35,16 +35,7 @@ public static class CarDonorService
 
     private static List<CarDonor>? _cache;
 
-    public static string DonorsPath
-    {
-        get
-        {
-            string beside = Path.Combine(AppContext.BaseDirectory, "car-donors.json");
-            if (File.Exists(beside)) return beside;
-            string src = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "car-donors.json"));
-            return File.Exists(src) ? src : beside;
-        }
-    }
+    public static string DonorsPath => AppPaths.CarDonorsPath;
 
     public static IReadOnlyList<CarDonor> LoadAll(bool refresh = false)
     {

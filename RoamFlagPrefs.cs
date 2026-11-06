@@ -40,7 +40,7 @@ internal static class RoamFlagPrefs
 
     private static IEnumerable<string> IconPaths(string code)
     {
-        yield return Path.Combine(AppContext.BaseDirectory, "Assets", "flags", code + ".png");
+        yield return AppPaths.AssetPath("flags", code + ".png");
         yield return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Assets", "flags", code + ".png"));
     }
 

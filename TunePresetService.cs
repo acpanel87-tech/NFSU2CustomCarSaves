@@ -106,24 +106,21 @@ public static class TunePresetService
         get
         {
             var dirs = DynoSavesDirs();
-            return dirs.Count > 0 ? dirs[0] : Path.Combine(AppContext.BaseDirectory, "DYNO SAVES");
+            return dirs.Count > 0 ? dirs[0] : AppPaths.StockDynoSavesDir;
         }
     }
 
-    /// <summary>All DYNO SAVES folders (output + project source) so new dumps are found without a rebuild.</summary>
+    /// <summary>All DynoSaves folders (Stock + legacy + project source) so new dumps are found without a rebuild.</summary>
     public static IReadOnlyList<string> DynoSavesDirs()
     {
         var list = new List<string>();
-        void Try(string path)
+        foreach (string path in AppPaths.DynoSavesCandidates())
         {
-            if (!Directory.Exists(path)) return;
+            if (!Directory.Exists(path)) continue;
             string full = Path.GetFullPath(path);
-            if (list.Any(x => x.Equals(full, StringComparison.OrdinalIgnoreCase))) return;
+            if (list.Any(x => x.Equals(full, StringComparison.OrdinalIgnoreCase))) continue;
             list.Add(full);
         }
-        Try(Path.Combine(AppContext.BaseDirectory, "DYNO SAVES"));
-        Try(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "DYNO SAVES")));
-        Try(Path.Combine(Environment.CurrentDirectory, "DYNO SAVES"));
         return list;
     }
 

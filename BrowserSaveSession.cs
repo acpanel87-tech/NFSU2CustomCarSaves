@@ -150,15 +150,10 @@ public sealed class BrowserSaveSession : IDisposable
                 return data;
         }
         throw new FileNotFoundException(
-            "Jane template missing (Templates/JANE). Reinstall or copy Jane next to the app.");
+            "Jane template missing (Stock/Templates/JANE). Reinstall or copy Jane into Stock/Templates.");
     }
 
-    private static IEnumerable<string> JaneCareerCandidates()
-    {
-        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "JANE");
-        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "Jane");
-        yield return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Templates", "JANE"));
-    }
+    private static IEnumerable<string> JaneCareerCandidates() => AppPaths.JaneCareerCandidates();
 
     private static bool IsArchive(string path)
     {
@@ -622,11 +617,7 @@ public sealed class BrowserSaveSession : IDisposable
             "roam_collide = none\n";
     }
 
-    private static IEnumerable<string> SettingsTemplateCandidates()
-    {
-        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "settings.ini");
-        yield return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Templates", "settings.ini"));
-    }
+    private static IEnumerable<string> SettingsTemplateCandidates() => AppPaths.SettingsIniCandidates();
 
     private string? FindBesideWork(string fileName)
     {

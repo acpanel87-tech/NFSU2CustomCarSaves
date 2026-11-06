@@ -197,8 +197,8 @@ public static class LiveryService
         var lib = LoadLibraryMutable();
         foreach (var p in lib.Presets) Add(p);
 
-        // Shipped stock (Presets/livery_library.json) — always available in beta builds.
-        string stock = Path.Combine(AppContext.BaseDirectory, "Presets", "livery_library.json");
+        // Shipped stock (Stock/Presets/livery_library.json) — always available in beta builds.
+        string stock = Path.Combine(AppPaths.StockPresetsDir, "livery_library.json");
         if (File.Exists(stock))
         {
             try
@@ -257,12 +257,7 @@ public static class LiveryService
         return total;
     }
 
-    private static IEnumerable<string> JaneTemplateCandidates()
-    {
-        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "JANE");
-        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "Jane");
-        yield return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Templates", "JANE"));
-    }
+    private static IEnumerable<string> JaneTemplateCandidates() => AppPaths.JaneCareerCandidates();
 
     public static int HarvestFromFolder(string folder, string verified = "folder")
     {

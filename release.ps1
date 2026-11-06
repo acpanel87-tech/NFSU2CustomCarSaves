@@ -60,7 +60,8 @@ if ([string]::IsNullOrWhiteSpace($Notes)) {
 2. Extract the ``NFSU2CustomCarSaves`` folder
 3. Run ``NFSU2CustomCarSaves.exe``
 
-Self-contained **Windows x64** build — no separate .NET install needed. Keep the whole folder together.
+Self-contained **Windows x64** (single-file) — no separate .NET install.
+Layout: ``exe`` + ``Assets/`` ``Data/`` ``Stock/`` ``Tools/``. Keep the whole folder together.
 "@
 }
 

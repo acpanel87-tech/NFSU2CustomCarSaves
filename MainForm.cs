@@ -60,7 +60,7 @@ public sealed class MainForm : Form
         Text = "Custom Car Saves";
         try
         {
-            string ico = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
+            string ico = AppPaths.AssetPath("app.ico");
             if (File.Exists(ico)) Icon = new Icon(ico);
         }
         catch { /* default icon */ }

@@ -16,19 +16,42 @@
     <NoWarn>$(NoWarn);NU1902</NoWarn>
   </PropertyGroup>
 
+  <!-- Portable layout: Assets / Data / Stock / Tools (repo folders stay as-is). -->
   <ItemGroup>
-    <None Include="Wipe-All.bat" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Templates\JANE" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Templates\settings.ini" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Assets\ccs-logo.png" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Assets\ccs-text.png" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Assets\settings-icon.png" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Assets\flags\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Presets\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="DYNO SAVES\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Stats\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="car-donors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Wipe-All.bat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Tools\Wipe-All.bat</TargetPath>
+    </None>
+    <None Include="car-donors.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Stock\car-donors.json</TargetPath>
+    </None>
+    <None Include="Templates\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Stock\Templates\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+    <None Include="Assets\**\*" Exclude="Assets\app.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Assets\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+    <!-- ApplicationIcon is a separate item; still ship the file for runtime icon load. -->
+    <None Include="Assets\app.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>Assets\app.ico</TargetPath>
+    </None>
+    <None Include="Presets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Stock\Presets\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+    <None Include="DYNO SAVES\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Stock\DynoSaves\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+    <None Include="Stats\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Stock\Stats\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

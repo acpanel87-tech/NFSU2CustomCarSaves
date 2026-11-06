@@ -72,12 +72,12 @@ internal static class GalaxyAssets
     {
         foreach (string name in names)
         {
-            string beside = Path.Combine(AppContext.BaseDirectory, "Assets", name);
+            string beside = AppPaths.AssetPath(name);
             if (File.Exists(beside)) return beside;
             string dev = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Assets", name));
             if (File.Exists(dev)) return dev;
         }
-        return Path.Combine(AppContext.BaseDirectory, "Assets", names[0]);
+        return AppPaths.AssetPath(names[0]);
     }
 
     /// <summary>Shared logo (loaded once, no file lock). Never dispose.</summary>

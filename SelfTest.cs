@@ -258,9 +258,12 @@ internal static class SelfTest
             string max = SaveMaxOut.Apply(fresh.Working);
             Console.WriteLine("fresh+cars maxout=" + max);
 
-            string janePath = Path.Combine(AppContext.BaseDirectory, "Templates", "JANE");
+            string janePath = AppPaths.JaneCareerCandidates().FirstOrDefault(File.Exists) ?? "";
             if (!File.Exists(janePath))
-                janePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Templates", "JANE"));
+            {
+                Console.WriteLine("FAIL: Jane template missing for fresh+cars CRC compare");
+                return 14;
+            }
             byte[] jane = File.ReadAllBytes(janePath);
             int seven = Layout.CareerSaveBase + Layout.Career7B00Rel;
             int shopLo = SaveMaxOut.HiddenShopsOffset;
@@ -369,9 +372,7 @@ internal static class SelfTest
 
         // Packed-stage reputation + probable spent: set → CRC → read back → restore
         {
-            string janePath = Path.Combine(AppContext.BaseDirectory, "Templates", "JANE");
-            if (!File.Exists(janePath))
-                janePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Templates", "JANE"));
+            string janePath = AppPaths.JaneCareerCandidates().FirstOrDefault(File.Exists) ?? "";
             if (!File.Exists(janePath))
             {
                 Console.WriteLine("FAIL: Jane template missing for stats roundtrip");

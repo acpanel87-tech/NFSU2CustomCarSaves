@@ -47,7 +47,7 @@ public sealed class StatsSchemaLimit
     public double Max { get; set; }
 }
 
-/// <summary>Loads <c>Stats/stats.schema.json</c> + merges user fields from Data.</summary>
+/// <summary>Loads <c>Stock/Stats/stats.schema.json</c> + merges user fields from Data.</summary>
 public static class StatsSchemaStore
 {
     private static readonly JsonSerializerOptions JsonOpts = new()
@@ -59,16 +59,7 @@ public static class StatsSchemaStore
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    public static string BundledPath
-    {
-        get
-        {
-            string nextToExe = Path.Combine(AppContext.BaseDirectory, "Stats", "stats.schema.json");
-            if (File.Exists(nextToExe)) return nextToExe;
-            string dev = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Stats", "stats.schema.json"));
-            return dev;
-        }
-    }
+    public static string BundledPath => AppPaths.BundledStatsSchemaPath;
 
     public static string UserFieldsPath => Path.Combine(AppPaths.DataDir, "stats.schema.user.json");
 

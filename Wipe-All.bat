@@ -4,10 +4,10 @@ title Custom Car Saves - Wipe All Data
 echo.
 echo  Wipe all Custom Car Saves data on this PC.
 echo  Does NOT touch game saves / "NFSU2 BROWSER SAVE".
-echo  Does NOT delete stock Presets / DYNO SAVES / Templates.
+echo  Does NOT delete Stock (Presets / DynoSaves / Templates / Stats).
 echo.
 echo  Will be removed:
-echo    Data\ next to this .bat / the exe  (rack, dyno library, liveries)
+echo    Data\ next to the app  (rack, dyno library, liveries)
 echo    %%LOCALAPPDATA%%\NFSU2CustomCarSaves
 echo    %%TEMP%%\NFSU2CustomCarSaves
 echo    legacy %%LOCALAPPDATA%%\NFSU2CarAdder  (if present)
@@ -16,7 +16,12 @@ echo.
 pause
 
 set "HERE=%~dp0"
-set "DATA=%HERE%Data"
+if exist "%HERE%Data\" (
+  set "DATA=%HERE%Data"
+) else (
+  set "DATA=%HERE%..\Data"
+)
+
 set "APP=%LOCALAPPDATA%\NFSU2CustomCarSaves"
 set "TMPDIR=%TEMP%\NFSU2CustomCarSaves"
 set "LEGACY=%LOCALAPPDATA%\NFSU2CarAdder"
@@ -68,6 +73,6 @@ if errorlevel 1 (
 :done_backups
 
 echo.
-echo Done. Stock Presets / DYNO SAVES / Templates are still there.
+echo Done. Stock content is still there.
 echo.
 pause

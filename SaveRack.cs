@@ -178,12 +178,7 @@ public sealed class SaveRack
         return added;
     }
 
-    private static IEnumerable<string> JaneCareerCandidates()
-    {
-        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "JANE");
-        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "Jane");
-        yield return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Templates", "JANE"));
-    }
+    private static IEnumerable<string> JaneCareerCandidates() => AppPaths.JaneCareerCandidates();
 
     private static int HarvestFolderInto(SaveRack rack, HashSet<string> existing, string folder, ref bool dirty)
     {
