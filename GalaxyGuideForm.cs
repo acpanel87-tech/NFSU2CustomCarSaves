@@ -14,6 +14,7 @@ public sealed class GalaxyGuideForm : Form
     private readonly Font _fH = new("Segoe UI Semibold", 13f, FontStyle.Bold | FontStyle.Italic);
     private readonly Font _fBody = new("Segoe UI", 9.5f);
     private readonly Font _fMute = new("Segoe UI", 8.5f);
+    private readonly Font _fDiscord = new("Segoe UI Semibold", 11f, FontStyle.Bold);
     private readonly Font _fBadge = new("Segoe UI Semibold", 9f, FontStyle.Bold);
     private readonly Font _fName = new("Segoe UI Black", 28f, FontStyle.Bold | FontStyle.Italic);
     private readonly Font _fMono = new("Consolas", 14f, FontStyle.Bold);
@@ -21,7 +22,7 @@ public sealed class GalaxyGuideForm : Form
     private static readonly string[] Steps =
     [
         "Set Name + Flag (your nfsu2.xyz player name / free-roam flag), then Start or Open.",
-        "Customize Car Select: Copy dyno / livery / full car, or Steal → Career (tune+dyno+livery).",
+        "Steal both ways: Customize → Career or Career → Customize (tune+dyno+livery).",
         "Optional: 100% Save unlocks shop/career without touching your cars.",
         "Save zip… — name, flag, GARAGE.DAT + settings for nfsu2.xyz.",
         "On nfsu2.xyz → Restore a backup (not “Add profile”).",
@@ -57,17 +58,38 @@ public sealed class GalaxyGuideForm : Form
         topBar.Controls.Add(tabs);
         Controls.Add(topBar);
 
-        var bottomBar = new Panel { Dock = DockStyle.Bottom, Height = 42, BackColor = UiTheme.BgDeep };
+        var bottomBar = new Panel { Dock = DockStyle.Bottom, Height = 48, BackColor = UiTheme.BgDeep };
         var bottom = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.RightToLeft,
-            Padding = new Padding(10, 6, 10, 4),
+            Padding = new Padding(10, 8, 10, 4),
             BackColor = UiTheme.BgDeep,
         };
         var ride = UiTheme.Compact(UiTheme.Btn("Let's ride", () => { DialogResult = DialogResult.OK; Close(); }, primary: true));
         bottom.Controls.Add(ride);
+        // Fill first, then Left — wordmark stays far-left of the banner next to the button row.
         bottomBar.Controls.Add(bottom);
+        var titleBmp = GalaxyAssets.TextFit(260, 34);
+        if (titleBmp != null)
+        {
+            var wordmarkHost = new Panel
+            {
+                Dock = DockStyle.Left,
+                Width = Math.Min(280, titleBmp.Width + 20),
+                BackColor = UiTheme.BgDeep,
+                Padding = new Padding(10, 7, 4, 7),
+            };
+            var wordmark = new PictureBox
+            {
+                Image = titleBmp,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Dock = DockStyle.Fill,
+                BackColor = UiTheme.BgDeep,
+            };
+            wordmarkHost.Controls.Add(wordmark);
+            bottomBar.Controls.Add(wordmarkHost);
+        }
         Controls.Add(bottomBar);
         AcceptButton = ride;
         CancelButton = ride;
@@ -75,7 +97,7 @@ public sealed class GalaxyGuideForm : Form
         SetTab(0);
         FormClosed += (_, _) =>
         {
-            _fH.Dispose(); _fBody.Dispose(); _fMute.Dispose();
+            _fH.Dispose(); _fBody.Dispose(); _fMute.Dispose(); _fDiscord.Dispose();
             _fBadge.Dispose(); _fName.Dispose(); _fMono.Dispose();
         };
     }
@@ -158,8 +180,18 @@ public sealed class GalaxyGuideForm : Form
 
         var ns = GalaxyCanvas.DrawGradientText(g, "BARKIE", _fName, x - 1, y, UiTheme.Lilac, UiTheme.Primary);
         y += ns.Height + 6;
-        g.DrawString("Discord", _fMute, dim, x, y);
-        y += 18;
+
+        // "Discord" label (readable) + small icon on the right — tag below stays unchanged.
+        using var discordInk = new SolidBrush(Color.FromArgb(245, 200, 214, 255));
+        var discordSize = g.MeasureString("Discord", _fDiscord);
+        g.DrawString("Discord", _fDiscord, discordInk, x, y);
+        int iconPx = Math.Max(10, Math.Min(14, (int)Math.Floor(discordSize.Height) - 2));
+        var discordIcon = GalaxyAssets.DiscordIcon(iconPx);
+        float iconX = x + discordSize.Width + 4f;
+        float iconY = y + Math.Max(0f, (discordSize.Height - iconPx) * 0.5f - 1f);
+        g.DrawImage(discordIcon, iconX, iconY, iconPx, iconPx);
+        y += Math.Max(discordSize.Height, iconPx) + 4f;
+
         g.DrawString("@extrabarkie", _fMono, bright, x, y);
         y = Math.Max(y + 28, logoBottom + 12);
 

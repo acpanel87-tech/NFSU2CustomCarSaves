@@ -21,10 +21,13 @@
     <None Include="Templates\JANE" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates\settings.ini" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Assets\ccs-logo.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\ccs-text.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\settings-icon.png" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Assets\flags\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Presets\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="DYNO SAVES\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Stats\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="car-donors.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

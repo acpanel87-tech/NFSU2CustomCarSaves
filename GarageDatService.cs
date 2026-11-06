@@ -133,6 +133,17 @@ public static class GarageDatService
 
     public static void UpdateGarageCarCount(byte[] working)
     {
+        // Keep at least 5 unlocked empty career slots for Add car UX, but never
+        // invent a count below the highest occupied slot.
+        SyncGarageCarCount(working, minUnlocked: 5);
+    }
+
+    /// <summary>
+    /// Garage counter = highest occupied slot (1–10). Optional floor keeps empty
+    /// slots visible without lying about cars that do not exist beyond that floor.
+    /// </summary>
+    public static void SyncGarageCarCount(byte[] working, int minUnlocked = 1)
+    {
         int n = working.Length >= Layout.ExtraSlotRecordBase + Layout.CareerSlotCount * Layout.SlotStride
             ? Layout.MaxSlotCount
             : Layout.CareerSlotCount;
@@ -142,7 +153,8 @@ public static class GarageDatService
             if (ReadSlot(working, i).IsOccupied)
                 highest = i + 1;
         }
-        working[Layout.GarageCarCountOffset] = (byte)Math.Clamp(Math.Max(5, highest), 1, 10);
+        int value = Math.Max(highest, Math.Clamp(minUnlocked, 1, 10));
+        working[Layout.GarageCarCountOffset] = (byte)Math.Clamp(value, 1, 10);
     }
 
     public static List<SlotInfo> ReadSlots(byte[] working)

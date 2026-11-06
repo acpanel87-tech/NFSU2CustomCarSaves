@@ -194,6 +194,9 @@ public static class TunePresetService
         return total;
     }
 
+    /// <summary>After WipeLibraries — drop in-memory dyno list so UI reloads from disk.</summary>
+    public static void InvalidateCache() => _cache = null;
+
     public static int HarvestFromFolder(string folder, string verified = "folder")
     {
         int total = 0;

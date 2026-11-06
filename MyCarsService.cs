@@ -82,15 +82,50 @@ public static class MyCarsService
         Ensure(working);
         var t = (byte[])tuned.Clone();
         // My Cars occupation = enable @ +8 (Bought at 0x42D stays unused / 0)
-        t[MyCarsLayout.EnableOff] = 1;
-        if (t.Length > 12 && t[12] == 0) t[12] = 4;
+        EnsureOccupiedHeader(t, index);
         Buffer.BlockCopy(t, 0, working, BlockOffset(index), Layout.TunedCarSize);
     }
 
+    /// <summary>
+    /// Jane-valid empty My Cars block: not all zeros.
+    /// Empty slots keep type=+12=2 and stock dyno (byte 100); enable/hash stay 0.
+    /// </summary>
     public static void Clear(byte[] working, int index)
     {
         Ensure(working);
-        Array.Clear(working, BlockOffset(index), MyCarsLayout.BlockSize);
+        int off = BlockOffset(index);
+        Array.Clear(working, off, MyCarsLayout.BlockSize);
+        working[off + 12] = 2;
+        var dyno = new byte[Layout.DynoTotalSize];
+        Array.Fill(dyno, (byte)100);
+        Buffer.BlockCopy(dyno, 0, working, off + MyCarsLayout.DynoRel, dyno.Length);
+    }
+
+    /// <summary>Reset all Customize Car Select blocks to Jane-valid empties.</summary>
+    public static void ClearAll(byte[] working)
+    {
+        if (!BufferHasMyCars(working)) return;
+        for (int i = 0; i < MyCarsLayout.Count; i++)
+            Clear(working, i);
+    }
+
+    /// <summary>FE-style handle Jane uses for menu My Cars (83+i C9 96 69).</summary>
+    public static void WriteOccupiedHandle(byte[] blockOrTuned, int index)
+    {
+        if ((uint)index >= MyCarsLayout.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        if (blockOrTuned.Length < 17) throw new ArgumentException("TunedCar too small.");
+        blockOrTuned[0] = (byte)(0x83 + index);
+        blockOrTuned[1] = 0xC9;
+        blockOrTuned[2] = 0x96;
+        blockOrTuned[3] = 0x69;
+    }
+
+    private static void EnsureOccupiedHeader(byte[] tuned, int index)
+    {
+        WriteOccupiedHandle(tuned, index);
+        tuned[MyCarsLayout.EnableOff] = 1;
+        tuned[12] = 2; // Jane My Cars type (career SAVE_REC uses 4)
+        tuned[16] = 1;
     }
 
     public static CarSlotPackage ExportPackage(byte[] working, int index, string profileName)
@@ -98,12 +133,15 @@ public static class MyCarsService
         var info = Read(working, index);
         if (!info.IsOccupied) throw new InvalidOperationException("My Cars slot is empty.");
         ReadTuned(working, index, out var tuned);
+        string save = string.IsNullOrWhiteSpace(profileName) ? "save" : profileName.Trim();
+        string car = info.CarHash != 0 ? CarNames.Display(info.CarHash) : info.DisplayName;
         return new CarSlotPackage
         {
-            CarName = info.DisplayName,
+            CarName = car,
             XName = info.XName,
             CarHash = info.CarHash,
-            SourceProfile = profileName + " / My Cars",
+            SourceProfile = $"{save} · Customize {index + 1}",
+            SourceArea = "Customize",
             TunedHex = Convert.ToHexString(tuned),
             InventoryHex = Convert.ToHexString(new byte[Layout.InventorySize]),
         };
@@ -154,7 +192,15 @@ public static class MyCarsService
         Array.Fill(stockDyno, (byte)100);
         DynoService.WriteRaw(working, index, stockDyno, menuMyCars: true);
 
-        working[BlockOffset(index) + MyCarsLayout.EnableOff] = 1;
+        // Jane My Cars header (FE handle + type 2) — donor writes start at editor (+4)
+        int off = BlockOffset(index);
+        working[off + 0] = (byte)(0x83 + index);
+        working[off + 1] = 0xC9;
+        working[off + 2] = 0x96;
+        working[off + 3] = 0x69;
+        working[off + MyCarsLayout.EnableOff] = 1;
+        working[off + 12] = 2;
+        working[off + 16] = 1;
     }
 
     public static DynoPackage ExportDyno(byte[] working, int index, string? saveName = null)

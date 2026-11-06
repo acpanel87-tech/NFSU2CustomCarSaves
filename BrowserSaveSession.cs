@@ -53,7 +53,8 @@ public sealed class BrowserSaveSession : IDisposable
     }
 
     /// <summary>
-    /// Fresh default playground: Jane free-play career + empty unlocked slots 1–10 + empty GARAGE.DAT.
+    /// Fresh default playground: Jane free-play career + empty Career 1–10 + empty Customize Car Select + empty GARAGE.DAT.
+    /// Jane’s template ships with 6 My Cars; those are wiped so Start does not leave menu cars behind.
     /// </summary>
     public static BrowserSaveSession CreateFreshDefault(string profileName = "Player")
     {
@@ -79,12 +80,14 @@ public sealed class BrowserSaveSession : IDisposable
             session.LocateAndLoad();
             session.EnsureSlots10();
             GarageDatService.ClearAllSlots(session.Working);
+            MyCarsService.ClearAll(session.Working);
             session.WriteInGameName(profileName);
             if (!string.Equals(session.ProfileName, profileName, StringComparison.Ordinal))
                 session.Rename(profileName);
             // Free-play / shops / money like Jane 100% (cars already cleared)
             SaveMaxOut.Apply(session.Working);
             GarageDatService.ClearAllSlots(session.Working); // MaxOut unlocks only — keep empty
+            MyCarsService.ClearAll(session.Working);
             session.Dirty = true;
             return session;
         }
@@ -368,12 +371,15 @@ public sealed class BrowserSaveSession : IDisposable
         GarageDatService.ReadRecord(Working, slotIndex, out var tuned, out var inv);
         var info = GarageDatService.ReadSlot(Working, slotIndex);
         if (!info.IsOccupied) throw new InvalidOperationException("Slot is empty.");
+        string save = string.IsNullOrWhiteSpace(profileName) ? "save" : profileName.Trim();
+        string car = info.CarHash != 0 ? CarNames.Display(info.CarHash) : info.DisplayName;
         return new CarSlotPackage
         {
-            CarName = info.DisplayName,
+            CarName = car,
             XName = info.XName,
             CarHash = info.CarHash,
-            SourceProfile = profileName,
+            SourceProfile = $"{save} · Career {slotIndex + 1}",
+            SourceArea = "Career",
             TunedHex = Convert.ToHexString(tuned),
             InventoryHex = Convert.ToHexString(inv),
         };

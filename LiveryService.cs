@@ -42,7 +42,32 @@ public sealed class LiveryPreset
         Verified.Equals("imported-save", StringComparison.OrdinalIgnoreCase) ||
         Verified.Equals("folder", StringComparison.OrdinalIgnoreCase));
 
-    public string OriginLabel => IsUserCreated ? "user created" : "";
+    public string OriginLabel =>
+        IsBundled ? "bundled"
+        : IsUserCreated ? "user created"
+        : Verified.Equals("imported-save", StringComparison.OrdinalIgnoreCase) ? "imported save"
+        : Verified.Equals("folder", StringComparison.OrdinalIgnoreCase) ? "from folder"
+        : "library";
+
+    /// <summary>Rich hover text for the Liveries list.</summary>
+    public string HoverTip
+    {
+        get
+        {
+            string car = string.IsNullOrWhiteSpace(CarName) ? "Unknown car" : CarName;
+            string save = string.IsNullOrWhiteSpace(SaveName) ? "?" : SaveName;
+            var lines = new List<string>
+            {
+                car,
+                $"From save: {save}",
+            };
+            if (Slot > 0) lines.Add($"Slot: {Slot}");
+            lines.Add($"Origin: {OriginLabel}");
+            if (!string.IsNullOrWhiteSpace(Note)) lines.Add(Note);
+            lines.Add("Double-click or Apply → selected car");
+            return string.Join("\n", lines);
+        }
+    }
 
     public int ActiveLayerCount
     {
@@ -149,6 +174,9 @@ public static class LiveryService
         return _slotIndex.TryGetValue(visualSlot, out int idx) ? idx : -1;
     }
 
+    private static bool _stockImported;
+    private const int LibrarySoftCap = 2000;
+
     public static IReadOnlyList<LiveryPreset> LoadAll(bool refresh = false)
     {
         if (_cache != null && !refresh) return _cache;
@@ -190,17 +218,55 @@ public static class LiveryService
         return _cache;
     }
 
-    /// <summary>Harvest graphics/liveries from every DYNO SAVES folder (output + project).</summary>
+    /// <summary>
+    /// One-shot at startup (after migrate) so the Liveries tab has bundled stock
+    /// before the user opens a save.
+    /// </summary>
+    public static int EnsureStockLiveriesImported()
+    {
+        if (_stockImported) return 0;
+        _stockImported = true;
+        return ImportFromDynoSavesFolder();
+    }
+
+    /// <summary>After WipeLibraries — allow EnsureStockLiveriesImported to run again.</summary>
+    public static void ResetStockImportFlag()
+    {
+        _stockImported = false;
+        _cache = null;
+    }
+
+    /// <summary>Harvest graphics/liveries from every DYNO SAVES folder + optional Templates/JANE.</summary>
     public static int ImportFromDynoSavesFolder()
     {
         int total = 0;
         foreach (string dir in TunePresetService.DynoSavesDirs())
             total += HarvestFromFolder(dir, verified: "dyno-saves-pack");
+
+        // Optional Jane free-play template (same career dump as DYNO SAVES/Jane, may differ by build).
+        foreach (string jane in JaneTemplateCandidates())
+        {
+            if (!File.Exists(jane)) continue;
+            try
+            {
+                total += HarvestCareerFile(jane, verified: "dyno-saves-pack");
+            }
+            catch { /* skip */ }
+            break;
+        }
         return total;
+    }
+
+    private static IEnumerable<string> JaneTemplateCandidates()
+    {
+        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "JANE");
+        yield return Path.Combine(AppContext.BaseDirectory, "Templates", "Jane");
+        yield return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Templates", "JANE"));
     }
 
     public static int HarvestFromFolder(string folder, string verified = "folder")
     {
+        if (!Directory.Exists(folder)) return 0;
         int total = 0;
         foreach (string file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
         {
@@ -210,20 +276,51 @@ public static class LiveryService
                 string ext = Path.GetExtension(file);
                 if (ext.Equals(".json", StringComparison.OrdinalIgnoreCase) ||
                     ext.Equals(".txt", StringComparison.OrdinalIgnoreCase) ||
-                    ext.Equals(".md", StringComparison.OrdinalIgnoreCase))
+                    ext.Equals(".md", StringComparison.OrdinalIgnoreCase) ||
+                    ext.Equals(".ini", StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                byte[] data = File.ReadAllBytes(file);
-                if (data.Length < Layout.ProfileSize) continue;
-                if (data.Length != Layout.ProfileSize && data.Length != Layout.ProfileSize + Layout.GarageSize)
-                    continue;
-
-                string saveName = Path.GetFileName(file);
-                total += HarvestFromSave(data, saveName, verified);
+                total += HarvestCareerFile(file, verified);
             }
             catch { /* skip bad file */ }
         }
         return total;
+    }
+
+    /// <summary>Read one career dump; merge sibling GARAGE.DAT so My Cars / slots 6–10 count.</summary>
+    private static int HarvestCareerFile(string file, string verified)
+    {
+        byte[] data = File.ReadAllBytes(file);
+        if (data.Length < Layout.ProfileSize) return 0;
+        if (data.Length != Layout.ProfileSize && data.Length != Layout.ProfileSize + Layout.GarageSize)
+            return 0;
+
+        // Merge sibling GARAGE.DAT so My Cars (slots 6–10) liveries are harvested too.
+        if (data.Length == Layout.ProfileSize && GarageDatService.LooksLikeCareer(data))
+        {
+            string? garagePath = FindSiblingGarage(file);
+            if (garagePath != null)
+            {
+                byte[] garage = File.ReadAllBytes(garagePath);
+                if (GarageDatService.LooksLikeGarage(garage))
+                    data = GarageDatService.Merge(data, garage, GarageState.Loaded);
+            }
+        }
+
+        string saveName = Path.GetFileName(file);
+        return HarvestFromSave(data, saveName, verified);
+    }
+
+    private static string? FindSiblingGarage(string careerFile)
+    {
+        string? dir = Path.GetDirectoryName(careerFile);
+        if (string.IsNullOrEmpty(dir)) return null;
+        foreach (string name in new[] { "GARAGE.DAT", "garage.dat", "Garage.dat" })
+        {
+            string p = Path.Combine(dir, name);
+            if (File.Exists(p)) return p;
+        }
+        return null;
     }
 
     public static LiveryPreset CaptureFromSlot(byte[] working, int slot, string saveName, string verified = "user", bool menuMyCars = false)
@@ -782,8 +879,16 @@ public static class LiveryService
     private static void SaveLibrary(LiveryCatalog cat)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(LibraryPath)!);
-        if (cat.Presets.Count > 500)
-            cat.Presets = cat.Presets.Take(500).ToList();
+        if (cat.Presets.Count > LibrarySoftCap)
+        {
+            // Prefer keeping harvested / bundled stock; truncate overflow from non-bundled first.
+            cat.Presets = cat.Presets
+                .OrderByDescending(p => p.IsBundled)
+                .ThenByDescending(p => p.IsUserCreated)
+                .ThenBy(p => p.CarName, StringComparer.OrdinalIgnoreCase)
+                .Take(LibrarySoftCap)
+                .ToList();
+        }
         File.WriteAllText(LibraryPath, JsonSerializer.Serialize(cat, new JsonSerializerOptions { WriteIndented = true }));
     }
 

@@ -25,8 +25,32 @@ public static class Layout
     public const int LockInSaveRec = 1072;
     public const int BoughtInSaveRec = 1073;
     public const int MoneyOffset = 0xA16A;
-    public const int MaxMoney = 0x7FFFFFFF;
+    /// <summary>
+    /// Career cash int32 @ MoneyOffset. Practical in-game / editor ceiling is $999,999,999
+    /// (Starladdey + community save tools). Raw int32 can go higher, but the game UI treats
+    /// nine 9s as the usable max bank.
+    /// </summary>
+    public const int MaxMoney = 999_999_999;
+    /// <summary>
+    /// Single byte immediately after Bank (sample value 1). Unknown — RAW label only.
+    /// </summary>
+    public const int UnknownAfterBankOffset = 0xA16E;
+    /// <summary>
+    /// Byte near bank after Entered int32 (Mosta=0, Usman=1). Unknown — RAW only.
+    /// </summary>
+    public const int UnknownNearBankOffset = 0xA173;
+    /// <summary>
+    /// Proven Races Entered (int32 LE, unaligned). Mosta=246, Usman=223 after Bank.
+    /// Safe UI clamp 999 (PS2 cheat, unverified); Extended writes full uint32 range.
+    /// </summary>
+    public const int RacesEnteredOffset = 0xA16F;
+    /// <summary>PS2 cheat ceiling for races entered — unverified on PC.</summary>
+    public const int RacesEnteredSafeMax = 999;
     public const int GarageCarCountOffset = 0xA175;
+    /// <summary>Options → Player → Transmission. 0 = Automatic, 1 = Manual (diffed from nfsu2 backups).</summary>
+    public const int TransmissionManualOffset = 0xC580;
+    /// <summary>Companion flag that flips opposite of <see cref="TransmissionManualOffset"/>.</summary>
+    public const int TransmissionAutoFlagOffset = 0xC74F;
     public const int PerfOff = 0x310;             // rel. SlotEditorBase
     public const int PerfCount = 68;
     public const int UniquePerfOff = 0x2E8;       // 9 × uint32
@@ -51,11 +75,46 @@ public static class Layout
     public const int Career7B00Rel = 0x7B00;
     public const int Career7B00Count = 384;
     public const int Career7B00Stride = 8;
+    /// <summary>Career7148 (nfsu2-re) — race progress / hash table before stages.</summary>
+    public const int Career7148Rel = 0x7148;
+    public const int Career7148Size = 0x190;
+    /// <summary>8-byte race rows packing finish place in byte+5 (1=win, 5=loss in Jane/DYNO dumps).</summary>
+    public const int Career7148RaceStride = 8;
+    public const int Career7148RaceBytes = 0x180; // field_0[128] + raceHash area
     public const int CareerMoneyMarkersRel = 0x8768;
     public const int CareerMoneyMarkersLen = 256;
     /// <summary>Career.field_8869[8][2] — normaliter allemaal 1.</summary>
     public const int CareerField8869Rel = 0x8869;
     public const int CareerField8869Len = 16;
+    /// <summary>Career887C — outrun/sponsor/visual path state (OnOutrunFinish, SponsorSigned).</summary>
+    public const int Career887CRel = 0x887C;
+    public const int Career887CSize = 0x190;
+
+    /// <summary>
+    /// Packed on-disk stage records (Mosta/Jane UI proof). Not the opaque 0xA30E×0x104 blob.
+    /// Total Reputation float @ base + stageIndex(1..5)*stride + 0xE0; race count uint8 at float+4.
+    /// </summary>
+    public const int PackedStageBase = 0x9962;
+    public const int PackedStageStride = 0x101;
+    public const int PackedStageRepRel = 0xE0;
+    public const int PackedStageRepRacesRel = 0xE4; // = RepRel + 4
+    public const int PackedStageFinishedRel = 0xFC;
+    public const int PackedStageIndexRel = 0xFD;
+    public const int PackedStageMinIndex = 1;
+    public const int PackedStageMaxIndex = 5;
+
+    /// <summary>
+    /// Probable Total Spent On Car for garage slot 0 (Mosta=119850, Usman=17800).
+    /// Per-slot: base + slot × <see cref="SlotStride"/> (= SAVE_REC + <see cref="TotalSpentOnCarRelInSaveRec"/>).
+    /// Editable slots 0…3; slot 4 reads constant junk (0x954C25AC) in Mosta/Usman — unverified.
+    /// </summary>
+    public const int TotalSpentOnCarBase = 0x6720;
+    /// <summary>Spent field relative to SAVE_REC start (0x6720 − 0x5868).</summary>
+    public const int TotalSpentOnCarRelInSaveRec = 0xEB8;
+    /// <summary>Editable Total Spent slots (0…3). Slot 4 is unverified / not Spent.</summary>
+    public const int TotalSpentEditableSlotCount = 4;
+    /// <summary>Alias for slot 0 base — prefer <see cref="TotalSpentOnCarOffsetForSlot"/>.</summary>
+    public const int TotalSpentOnCarOffset = TotalSpentOnCarBase;
 
     public const int GarageHeaderSize = 32;
     public const int GarageSize = GarageHeaderSize + CareerSlotCount * SlotStride; // 10202
@@ -86,4 +145,16 @@ public static class Layout
 
     /// <summary>Legacy name: TunedCar offset for career; for extras also TunedCar (SAVE_REC+4).</summary>
     public static int ExtendedRecordOffset(int slot0to9) => TunedOffset(slot0to9);
+
+    /// <summary>
+    /// Total Spent offset for career garage slot 0..4 at SAVE_REC + 0xEB8
+    /// (= <see cref="TotalSpentOnCarBase"/> + slot × <see cref="SlotStride"/>).
+    /// Writes are only safe for slots &lt; <see cref="TotalSpentEditableSlotCount"/>.
+    /// </summary>
+    public static int TotalSpentOnCarOffsetForSlot(int slot0to4)
+    {
+        if (slot0to4 < 0 || slot0to4 >= CareerSlotCount)
+            throw new ArgumentOutOfRangeException(nameof(slot0to4), "Spent slot index must be 0…4.");
+        return SaveRecOffset(slot0to4) + TotalSpentOnCarRelInSaveRec;
+    }
 }

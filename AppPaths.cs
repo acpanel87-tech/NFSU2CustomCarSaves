@@ -45,7 +45,7 @@ internal static class AppPaths
         }
     }
 
-    /// <summary>Call once at startup before loading rack/libraries.</summary>
+    /// <summary>Create DataDir + legacy LocalAppData migrate only (no stock seed).</summary>
     public static void EnsureMigrated()
     {
         if (_migrated) return;
@@ -64,11 +64,27 @@ internal static class AppPaths
         TryMigrate("dyno_library.json", DynoLibraryPath, legacyRoots);
         TryMigrate("livery_library.json", LiveryLibraryPath, legacyRoots);
         TryMigrate("dyno_clipboard.json", DynoClipboardPath, legacyRoots);
+    }
 
-        // Seed Data from shipped Presets stock (beta pack) if still missing.
+    /// <summary>
+    /// Seed stock libraries from Presets + bundled DYNO SAVES (deduped; safe to call repeatedly).
+    /// Returns a short status string for UI.
+    /// </summary>
+    public static string SeedDefaultLibraries()
+    {
         TrySeedFromStock("dyno_library.json", DynoLibraryPath);
         TrySeedFromStock("livery_library.json", LiveryLibraryPath);
         TrySeedFromStock("save_rack.json", SaveRackPath);
+
+        int rack = 0, liv = 0, dyno = 0;
+        try { rack = SaveRack.ImportFromBundledSaves(); }
+        catch { /* ignore harvest errors */ }
+        try { liv = LiveryService.EnsureStockLiveriesImported(); }
+        catch { /* ignore */ }
+        try { dyno = TunePresetService.EnsureDynoSavesImported(); }
+        catch { /* ignore */ }
+
+        return $"Stock ready — rack +{rack} · liveries +{liv} · dynos +{dyno}.";
     }
 
     private static void TrySeedFromStock(string fileName, string dest)

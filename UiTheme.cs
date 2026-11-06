@@ -2,40 +2,158 @@ using System.Drawing.Drawing2D;
 
 namespace NFSU2CustomCarSaves;
 
-/// <summary>Soft blue/purple galaxy tokens + controls.</summary>
+/// <summary>Soft blue/purple galaxy tokens + controls (dark by default; light via ApplyDarkMode).</summary>
 internal static class UiTheme
 {
-    public static readonly Color BgDeep = Color.FromArgb(0x07, 0x08, 0x1C);
-    public static readonly Color Bg = Color.FromArgb(0x0B, 0x0C, 0x28);
-    public static readonly Color Surface = Color.FromArgb(0x13, 0x13, 0x38);
-    public static readonly Color Elevated = Color.FromArgb(0x22, 0x20, 0x50);
-    public static readonly Color Border = Color.FromArgb(0x3C, 0x38, 0x7A);
-    public static readonly Color Primary = Color.FromArgb(0x7F, 0xE3, 0xFF);       // galaxy cyan
-    public static readonly Color PrimaryHover = Color.FromArgb(0xA6, 0xEE, 0xFF);
-    public static readonly Color Lilac = Color.FromArgb(0xB8, 0x9B, 0xFF);
-    public static readonly Color Text = Color.FromArgb(0xC9, 0xCC, 0xEE);
-    public static readonly Color TextStrong = Color.FromArgb(0xF2, 0xF0, 0xFF);
-    public static readonly Color TextMuted = Color.FromArgb(0x8E, 0x92, 0xC4);
-    public static readonly Color Warning = Color.FromArgb(0xFF, 0xA8, 0x9A);
-    public static readonly Color Amber = Color.FromArgb(0xF5, 0xC0, 0x6A);
-    public static readonly Color Success = Color.FromArgb(0x8E, 0xF0, 0xB4);
-    public static readonly Color Danger = Color.FromArgb(0x55, 0x18, 0x36);
-    public static readonly Color DangerHover = Color.FromArgb(0x7A, 0x24, 0x4A);
-    public static readonly Color DangerText = Color.FromArgb(0xFF, 0xC4, 0xCC);
-    public static readonly Color RacingPurple = Color.FromArgb(0x4B, 0x33, 0xA8);
-    public static readonly Color RacingPurpleHover = Color.FromArgb(0x6A, 0x4B, 0xD6);
-    public static readonly Color RacingPurpleText = Color.FromArgb(0xEA, 0xDD, 0xFF);
-    public static readonly Color InfoBlue = Color.FromArgb(0x1E, 0x34, 0x78);
-    public static readonly Color InfoBlueHover = Color.FromArgb(0x2A, 0x4A, 0x9A);
-    public static readonly Color InfoBlueText = Color.FromArgb(0xCF, 0xE0, 0xFF);
-    public static readonly Color StartYellow = Color.FromArgb(0xF7, 0xC9, 0x3E);
-    public static readonly Color StartYellowHover = Color.FromArgb(0xFF, 0xDC, 0x72);
-    public static readonly Color StartYellowText = Color.FromArgb(0x2A, 0x1C, 0x00);
-    public static readonly Color HudDim = Color.FromArgb(90, 127, 227, 255);
+    public static bool IsDark { get; private set; } = true;
+
+    public static Color BgDeep { get; private set; } = Color.FromArgb(0x07, 0x08, 0x1C);
+    public static Color Bg { get; private set; } = Color.FromArgb(0x0B, 0x0C, 0x28);
+    public static Color Surface { get; private set; } = Color.FromArgb(0x13, 0x13, 0x38);
+    public static Color Elevated { get; private set; } = Color.FromArgb(0x22, 0x20, 0x50);
+    public static Color Border { get; private set; } = Color.FromArgb(0x3C, 0x38, 0x7A);
+    public static Color Primary { get; private set; } = Color.FromArgb(0x7F, 0xE3, 0xFF);       // galaxy cyan
+    public static Color PrimaryHover { get; private set; } = Color.FromArgb(0xA6, 0xEE, 0xFF);
+    public static Color Lilac { get; private set; } = Color.FromArgb(0xB8, 0x9B, 0xFF);
+    public static Color Text { get; private set; } = Color.FromArgb(0xC9, 0xCC, 0xEE);
+    public static Color TextStrong { get; private set; } = Color.FromArgb(0xF2, 0xF0, 0xFF);
+    public static Color TextMuted { get; private set; } = Color.FromArgb(0x8E, 0x92, 0xC4);
+    public static Color Warning { get; private set; } = Color.FromArgb(0xFF, 0xA8, 0x9A);
+    public static Color Amber { get; private set; } = Color.FromArgb(0xF5, 0xC0, 0x6A);
+    public static Color Success { get; private set; } = Color.FromArgb(0x8E, 0xF0, 0xB4);
+    public static Color Danger { get; private set; } = Color.FromArgb(0x55, 0x18, 0x36);
+    public static Color DangerHover { get; private set; } = Color.FromArgb(0x7A, 0x24, 0x4A);
+    public static Color DangerText { get; private set; } = Color.FromArgb(0xFF, 0xC4, 0xCC);
+    /// <summary>Brighter destructive (Wipe) — more vivid red than standard Danger.</summary>
+    public static Color DangerBright { get; private set; } = Color.FromArgb(0xC0, 0x22, 0x38);
+    public static Color DangerBrightHover { get; private set; } = Color.FromArgb(0xE0, 0x36, 0x4C);
+    public static Color DangerBrightText { get; private set; } = Color.FromArgb(0xFF, 0xF0, 0xF2);
+    public static Color RacingPurple { get; private set; } = Color.FromArgb(0x4B, 0x33, 0xA8);
+    public static Color RacingPurpleHover { get; private set; } = Color.FromArgb(0x6A, 0x4B, 0xD6);
+    public static Color RacingPurpleText { get; private set; } = Color.FromArgb(0xEA, 0xDD, 0xFF);
+    public static Color InfoBlue { get; private set; } = Color.FromArgb(0x1E, 0x34, 0x78);
+    public static Color InfoBlueHover { get; private set; } = Color.FromArgb(0x2A, 0x4A, 0x9A);
+    public static Color InfoBlueText { get; private set; } = Color.FromArgb(0xCF, 0xE0, 0xFF);
+    public static Color StartYellow { get; private set; } = Color.FromArgb(0xF7, 0xC9, 0x3E);
+    public static Color StartYellowHover { get; private set; } = Color.FromArgb(0xFF, 0xDC, 0x72);
+    public static Color StartYellowText { get; private set; } = Color.FromArgb(0x2A, 0x1C, 0x00);
+    public static Color HudDim { get; private set; } = Color.FromArgb(90, 127, 227, 255);
 
     public static Font UiFont(float size = 9f) => new("Segoe UI", size);
     public static Font UiBold(float size = 9f) => new("Segoe UI Semibold", size);
     public static Font Mono(float size = 9.5f) => new("Consolas", size);
+
+    public static string ActiveThemeName { get; private set; } = "Dark";
+    public static Color Accent { get; private set; } = Color.FromArgb(0xB4, 0xFF, 0x2A);
+
+    /// <summary>
+    /// Dark = current galaxy night palette. Light = higher Bg / darker Text; accents unchanged.
+    /// </summary>
+    public static void ApplyDarkMode(bool dark) =>
+        ApplyTheme(dark ? "Dark" : "Light", null);
+
+    /// <summary>
+    /// Themes: NFSU2Classic (dark + lime italic vibe), Dark (galaxy), Light.
+    /// Optional <paramref name="accentArgb"/> overrides Primary/Lilac accents.
+    /// </summary>
+    public static void ApplyTheme(string themeName, int? accentArgb = null)
+    {
+        string name = string.IsNullOrWhiteSpace(themeName) ? "Dark" : themeName.Trim();
+        ActiveThemeName = name;
+        Color? accent = accentArgb.HasValue ? Color.FromArgb(accentArgb.Value) : null;
+        if (accent.HasValue) Accent = accent.Value;
+
+        if (name.Equals("Light", StringComparison.OrdinalIgnoreCase))
+        {
+            IsDark = false;
+            BgDeep = Color.FromArgb(0xD8, 0xDC, 0xF0);
+            Bg = Color.FromArgb(0xE8, 0xEA, 0xF6);
+            Surface = Color.FromArgb(0xF4, 0xF5, 0xFC);
+            Elevated = Color.FromArgb(0xFF, 0xFF, 0xFF);
+            Border = Color.FromArgb(0xA8, 0xAE, 0xD0);
+            Primary = accent ?? Color.FromArgb(0x2A, 0x7A, 0xB8);
+            PrimaryHover = Lighten(Primary, 24);
+            Lilac = accent ?? Color.FromArgb(0x6A, 0x4B, 0xC4);
+            Text = Color.FromArgb(0x2A, 0x2E, 0x4A);
+            TextStrong = Color.FromArgb(0x12, 0x14, 0x28);
+            TextMuted = Color.FromArgb(0x5A, 0x60, 0x88);
+            Warning = Color.FromArgb(0xC0, 0x48, 0x38);
+            Amber = Color.FromArgb(0xB0, 0x78, 0x18);
+            Success = Color.FromArgb(0x28, 0x90, 0x58);
+            Danger = Color.FromArgb(0xC8, 0x40, 0x58);
+            DangerHover = Color.FromArgb(0xE0, 0x50, 0x68);
+            DangerText = Color.FromArgb(0xFF, 0xF0, 0xF2);
+            DangerBright = Color.FromArgb(0xC0, 0x22, 0x38);
+            DangerBrightHover = Color.FromArgb(0xE0, 0x36, 0x4C);
+            DangerBrightText = Color.FromArgb(0xFF, 0xF0, 0xF2);
+            RacingPurple = Color.FromArgb(0x4B, 0x33, 0xA8);
+            RacingPurpleHover = Color.FromArgb(0x6A, 0x4B, 0xD6);
+            RacingPurpleText = Color.FromArgb(0xEA, 0xDD, 0xFF);
+            InfoBlue = Color.FromArgb(0x1E, 0x34, 0x78);
+            InfoBlueHover = Color.FromArgb(0x2A, 0x4A, 0x9A);
+            InfoBlueText = Color.FromArgb(0xCF, 0xE0, 0xFF);
+            StartYellow = Color.FromArgb(0xF7, 0xC9, 0x3E);
+            StartYellowHover = Color.FromArgb(0xFF, 0xDC, 0x72);
+            StartYellowText = Color.FromArgb(0x2A, 0x1C, 0x00);
+            HudDim = Color.FromArgb(70, 42, 90, 160);
+            return;
+        }
+
+        IsDark = true;
+        bool classic = name.Equals("NFSU2Classic", StringComparison.OrdinalIgnoreCase)
+                       || name.Equals("NFSU2 Classic", StringComparison.OrdinalIgnoreCase);
+        BgDeep = Color.FromArgb(0x07, 0x08, 0x1C);
+        Bg = Color.FromArgb(0x0B, 0x0C, 0x28);
+        Surface = Color.FromArgb(0x13, 0x13, 0x38);
+        Elevated = Color.FromArgb(0x22, 0x20, 0x50);
+        Border = Color.FromArgb(0x3C, 0x38, 0x7A);
+        if (classic)
+        {
+            Color lime = accent ?? Color.FromArgb(0xB4, 0xFF, 0x2A);
+            Accent = lime;
+            Primary = lime;
+            PrimaryHover = Lighten(lime, 20);
+            Lilac = lime;
+        }
+        else
+        {
+            Primary = accent ?? Color.FromArgb(0x7F, 0xE3, 0xFF);
+            PrimaryHover = Lighten(Primary, 20);
+            Lilac = accent ?? Color.FromArgb(0xB8, 0x9B, 0xFF);
+            if (accent.HasValue) Accent = accent.Value;
+        }
+        Text = Color.FromArgb(0xC9, 0xCC, 0xEE);
+        TextStrong = Color.FromArgb(0xF2, 0xF0, 0xFF);
+        TextMuted = Color.FromArgb(0x8E, 0x92, 0xC4);
+        Warning = Color.FromArgb(0xFF, 0xA8, 0x9A);
+        Amber = Color.FromArgb(0xF5, 0xC0, 0x6A);
+        Success = Color.FromArgb(0x8E, 0xF0, 0xB4);
+        Danger = Color.FromArgb(0x55, 0x18, 0x36);
+        DangerHover = Color.FromArgb(0x7A, 0x24, 0x4A);
+        DangerText = Color.FromArgb(0xFF, 0xC4, 0xCC);
+        DangerBright = Color.FromArgb(0xC0, 0x22, 0x38);
+        DangerBrightHover = Color.FromArgb(0xE0, 0x36, 0x4C);
+        DangerBrightText = Color.FromArgb(0xFF, 0xF0, 0xF2);
+        RacingPurple = Color.FromArgb(0x4B, 0x33, 0xA8);
+        RacingPurpleHover = Color.FromArgb(0x6A, 0x4B, 0xD6);
+        RacingPurpleText = Color.FromArgb(0xEA, 0xDD, 0xFF);
+        InfoBlue = Color.FromArgb(0x1E, 0x34, 0x78);
+        InfoBlueHover = Color.FromArgb(0x2A, 0x4A, 0x9A);
+        InfoBlueText = Color.FromArgb(0xCF, 0xE0, 0xFF);
+        StartYellow = Color.FromArgb(0xF7, 0xC9, 0x3E);
+        StartYellowHover = Color.FromArgb(0xFF, 0xDC, 0x72);
+        StartYellowText = Color.FromArgb(0x2A, 0x1C, 0x00);
+        HudDim = Color.FromArgb(90, 127, 227, 255);
+    }
+
+    public static void ApplyFromSettings(AppSettings s) =>
+        ApplyTheme(s.UiThemeName, s.UiAccentArgb);
+
+    private static Color Lighten(Color c, int amount) =>
+        Color.FromArgb(c.A,
+            Math.Min(255, c.R + amount),
+            Math.Min(255, c.G + amount),
+            Math.Min(255, c.B + amount));
 
     public static void ApplyForm(Form f)
     {
@@ -44,9 +162,10 @@ internal static class UiTheme
         f.Font = UiFont();
     }
 
-    public static Button Btn(string text, Action click, bool primary = false, bool danger = false, bool accent = false, bool info = false, bool start = false)
+    public static Button Btn(string text, Action click, bool primary = false, bool danger = false, bool accent = false, bool info = false, bool start = false, bool dangerBright = false)
     {
-        GlowKind kind = danger ? GlowKind.Danger
+        GlowKind kind = dangerBright ? GlowKind.DangerBright
+            : danger ? GlowKind.Danger
             : start ? GlowKind.Start
             : accent ? GlowKind.Accent
             : info ? GlowKind.Info
@@ -252,7 +371,7 @@ internal static class UiTheme
     }
 }
 
-internal enum GlowKind { Default, Primary, Accent, Info, Danger, Start, Pink, PinkDark }
+internal enum GlowKind { Default, Primary, Accent, Info, Danger, DangerBright, Start, Pink, PinkDark }
 
 /// <summary>Rounded gradient button with a gentle hover/CTA glow.</summary>
 internal sealed class GlowButton : Button
@@ -325,9 +444,14 @@ internal sealed class GlowButton : Button
                 _edge = C(0x38, 0x52, 0x98); _glow = C(0x70, 0xA0, 0xFF);
                 break;
             case GlowKind.Danger:
-                // Classic red wipe / destructive
+                // Standard destructive (Delete racks, etc.)
                 _top = C(0x7A, 0x24, 0x4A); _bottom = C(0x55, 0x18, 0x36); _fore = UiTheme.DangerText;
                 _edge = C(0x78, 0x30, 0x50); _glow = C(0xFF, 0x70, 0x98);
+                break;
+            case GlowKind.DangerBright:
+                // Brighter wipe — vivid red
+                _top = C(0xE8, 0x3A, 0x4A); _bottom = C(0xB0, 0x18, 0x2C); _fore = UiTheme.DangerBrightText;
+                _edge = C(0xFF, 0x5A, 0x68); _glow = C(0xFF, 0x6A, 0x78);
                 break;
             case GlowKind.PinkDark:
                 // Selected Career / Customize tab

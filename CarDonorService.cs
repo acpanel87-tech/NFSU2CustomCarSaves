@@ -137,21 +137,21 @@ public static class CarDonorService
         Array.Fill(stockDyno, (byte)100);
         DynoService.WriteRaw(working, slot, stockDyno);
 
+        // Career SAVE_REC header (Jane/hackch) — donor body starts at SlotEditor (+8)
+        if (slot < Layout.CareerSlotCount)
+        {
+            working[saveRec + 4] = (byte)(0xA1 + slot);
+            working[saveRec + 5] = 0x8C;
+            working[saveRec + 6] = 0x9A;
+            working[saveRec + 7] = 0x31;
+            working[saveRec + 12] = 1;
+            working[saveRec + 16] = 4;
+        }
         // hackch: lock=0, bought=1 — do not overwrite car body with "01CR"/"CR01"
         working[saveRec + Layout.LockInSaveRec] = 0;
         working[saveRec + Layout.BoughtInSaveRec] = 1;
         GarageDatService.EnsureExtraSlotHandle(working, slot);
-
-        // Career garage counter (slots 1–5); slots 6–10 live in GARAGE.DAT
-        if (slot < Layout.CareerSlotCount)
-        {
-            byte cur = working[Layout.GarageCarCountOffset];
-            working[Layout.GarageCarCountOffset] = (byte)Math.Max(cur, Math.Min(slot + 1, 6));
-        }
-        else
-        {
-            GarageDatService.UpdateGarageCarCount(working);
-        }
+        GarageDatService.UpdateGarageCarCount(working);
     }
 
     private static byte[] HexToBytes(string hex)
