@@ -156,7 +156,7 @@ public sealed class MainForm : Form
             Margin = new Padding(0, 2, 0, 0),
         };
         actions.Controls.Add(T(UiTheme.Btn("Start", StartFreshSave, start: true),
-            "Create a fresh default save using the Name box (default Player)."));
+            "Empty post-Rachel freeroam base (cars wiped, starter cash). Use 100% Save / Stats for full unlocks."));
         actions.Controls.Add(T(UiTheme.Btn("Open…", OpenSave, true),
             "Open a career save, GARAGE.DAT, zip or folder."));
         actions.Controls.Add(T(UiTheme.Btn("Save zip…", SaveSession, true),
@@ -527,8 +527,12 @@ public sealed class MainForm : Form
             return;
         }
 
-        // Push any pending money box edits before the dialog edits the same buffer.
-        PushMoneyToSession(quiet: true, reformat: true);
+        // Only push Money box → save if the user edited it; otherwise trust the save
+        // (Start / Open already wrote the buffer — don't clobber with a stale box).
+        if (_moneyTouched)
+            PushMoneyToSession(quiet: true, reformat: true);
+        else
+            SyncMoneyBox(PlayerOptionsService.GetMoney(_session.Working));
 
         using var f = new CareerStatsForm(_session.Working, () =>
         {
@@ -1023,26 +1027,31 @@ public sealed class MainForm : Form
         _session?.Dispose();
         _session = BrowserSaveSession.CreateFreshDefault(name);
         SyncNameBox(_session.ProfileName);
-        // Apply UI transmission choice onto the fresh Jane-based career
+        // Apply UI transmission choice onto the fresh post-Rachel career
         ApplyTransmissionFromPick();
         SyncTransmissionPick(PlayerOptionsService.GetTransmission(_session.Working));
-        // Fresh Jane already has cash; keep it unless Money was typed first.
+        // Starter cash unless the user already typed Money before Start.
         if (_moneyTouched && TryReadMoneyBox(out int startMoney))
         {
             PlayerOptionsService.SetMoney(_session.Working, startMoney);
+            CareerStatsService.EnsureCareerChecksums(_session.Working);
             _session.Dirty = true;
         }
         SyncMoneyBox(PlayerOptionsService.GetMoney(_session.Working));
         RefreshSlots();
         UpdateClipStatus();
         UpdateDynoStatus();
-        SetStatus($"{_session.ProfileName} — fresh default · empty Career + Car Select · free-play ready. Save zip… when done.");
+        int starterCash = global::NFSU2CustomCarSaves.Layout.FreshStartMoney;
+        SetStatus($"{_session.ProfileName} — empty post-Rachel base · freeroam · no cars · ${starterCash:N0}. Save zip… when done.");
         MessageBox.Show(this,
-            $"Fresh save “{_session.ProfileName}” is ready.\n\n" +
-            "• Career / shop free-play (Jane-style)\n" +
-            "• Slots 1–10 empty & unlocked\n" +
-            "• Max money\n\n" +
-            "Add cars, tune, then Save zip… and Restore on nfsu2.xyz.",
+            $"Fresh “0” save “{_session.ProfileName}” is ready.\n\n" +
+            "• Rachel / intro cleared → freeroam (Jane-coherent career)\n" +
+            "• Starter car removed — Career + Customize empty\n" +
+            "• Slots 1–10 unlocked & empty\n" +
+            $"• Starter money ${starterCash:N0} (not maxed)\n" +
+            "• Editable stats cleared (Entered / Spent / stage Rep → 0)\n\n" +
+            "Add cars / use Stats or 100% Save when you want unlocks.\n" +
+            "Then Save zip… and Restore on nfsu2.xyz.",
             "Start",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);

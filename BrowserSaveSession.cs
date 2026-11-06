@@ -53,8 +53,10 @@ public sealed class BrowserSaveSession : IDisposable
     }
 
     /// <summary>
-    /// Fresh default playground: Jane free-play career + empty Career 1–10 + empty Customize Car Select + empty GARAGE.DAT.
-    /// Jane’s template ships with 6 My Cars; those are wiped so Start does not leave menu cars behind.
+    /// Yellow Start → empty mod-tool base:
+    /// Jane coherent career (Rachel already cleared → freeroam, no intro restart),
+    /// starter car / all garage + Customize cars wiped, starter cash, empty unlocked slots.
+    /// Does <b>not</b> run 100% SaveMaxOut — use 100% Save / Stats wizard for full unlocks.
     /// </summary>
     public static BrowserSaveSession CreateFreshDefault(string profileName = "Player")
     {
@@ -79,15 +81,19 @@ public sealed class BrowserSaveSession : IDisposable
             var session = new BrowserSaveSession(work, isZip: false, work);
             session.LocateAndLoad();
             session.EnsureSlots10();
+            // Wipe Jane’s starter / menu cars — user picks cars via Add car afterwards.
             GarageDatService.ClearAllSlots(session.Working);
             MyCarsService.ClearAll(session.Working);
             session.WriteInGameName(profileName);
             if (!string.Equals(session.ProfileName, profileName, StringComparison.Ordinal))
                 session.Rename(profileName);
-            // Free-play / shops / money like Jane 100% (cars already cleared)
-            SaveMaxOut.Apply(session.Working);
-            GarageDatService.ClearAllSlots(session.Working); // MaxOut unlocks only — keep empty
+
+            PreparePostRachelEmptyBase(session.Working);
+
+            // Clear again after unlock helpers (never leave a residual car).
+            GarageDatService.ClearAllSlots(session.Working);
             MyCarsService.ClearAll(session.Working);
+            CareerStatsService.EnsureCareerChecksums(session.Working);
             session.Dirty = true;
             return session;
         }
@@ -96,6 +102,42 @@ public sealed class BrowserSaveSession : IDisposable
             TryDelete(work);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Post-Rachel freeroam sandbox: career started, completion off, starter money,
+    /// editable Stats cleared to 0, empty slots unlocked.
+    /// Keeps Jane career blobs (safe freeroam; no Rachel re-trigger).
+    /// </summary>
+    public static void PreparePostRachelEmptyBase(byte[] working)
+    {
+        if (working.Length < Layout.ProfileSize)
+            throw new InvalidOperationException("Career buffer too small for fresh Start base.");
+
+        CareerStatsService.SetCareerStarted(working, true);
+        CareerStatsService.SetCareerComplete(working, false);
+        PlayerOptionsService.SetMoney(working, Layout.FreshStartMoney);
+
+        // Proven/probable Stats editors → 0 (clean mod-tool baseline).
+        CareerStatsService.SetRacesEntered(working, 0, extended: false);
+        for (int slot = 0; slot < Layout.TotalSpentEditableSlotCount; slot++)
+            CareerStatsService.SetTotalSpentOnCar(working, 0, slot);
+        if (CareerStatsService.BufferHasPackedStages(working))
+        {
+            for (int stage = Layout.PackedStageMinIndex; stage <= Layout.PackedStageMaxIndex; stage++)
+            {
+                CareerStatsService.SetStageTotalReputation(working, stage, 0f);
+                CareerStatsService.SetStageRepRaceCount(working, stage, 0);
+            }
+        }
+
+        int slotCount = working.Length >= Layout.ExtraSlotRecordBase + Layout.CareerSlotCount * Layout.SlotStride
+            ? Layout.MaxSlotCount
+            : Layout.CareerSlotCount;
+        for (int i = 0; i < slotCount; i++)
+            GarageDatService.UnlockSlot(working, i);
+        GarageDatService.UpdateGarageCarCount(working);
+        CareerStatsService.EnsureCareerChecksums(working);
     }
 
     private static byte[] LoadJaneCareer()

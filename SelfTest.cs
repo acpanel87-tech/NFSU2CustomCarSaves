@@ -207,7 +207,7 @@ internal static class SelfTest
         }
         try { File.Delete(zip2); } catch { /* ignore */ }
 
-        // Fresh Start must wipe Jane’s 6 Customize Car Select cars but keep Jane-valid empties
+        // Fresh Start = post-Rachel empty base (no cars, starter cash, CRC ok; not full MaxOut)
         using (var fresh = BrowserSaveSession.CreateFreshDefault("SelfTst"))
         {
             int myCars = MyCarsService.ReadAll(fresh.Working).Count(c => c.IsOccupied);
@@ -215,6 +215,27 @@ internal static class SelfTest
             if (myCars != 0 || careerCars != 0)
             {
                 Console.WriteLine($"FAIL: fresh save still has cars career={careerCars} myCars={myCars}");
+                return 11;
+            }
+            if (PlayerOptionsService.GetMoney(fresh.Working) != Layout.FreshStartMoney)
+            {
+                Console.WriteLine($"FAIL: fresh money={PlayerOptionsService.GetMoney(fresh.Working)} expect {Layout.FreshStartMoney}");
+                return 11;
+            }
+            if (CareerStatsService.GetRacesEntered(fresh.Working) != 0
+                || CareerStatsService.GetTotalSpentOnCar(fresh.Working, 0) != 0
+                || CareerStatsService.GetTotalSpentOnCar(fresh.Working, 1) != 0
+                || Math.Abs(CareerStatsService.GetStageTotalReputation(fresh.Working, 5)) > 0.01f
+                || CareerStatsService.GetStageRepRaceCount(fresh.Working, 5) != 0)
+            {
+                Console.WriteLine("FAIL: fresh editable stats not zeroed (entered/spent/rep)");
+                return 11;
+            }
+            if (CareerStatsService.IsCareerComplete(fresh.Working)
+                || !CareerStatsService.GetCareerStarted(fresh.Working)
+                || !CareerStatsService.CareerChecksumsOk(fresh.Working))
+            {
+                Console.WriteLine("FAIL: fresh base flags/CRC (expect started=1 complete=0 CRC ok)");
                 return 11;
             }
             int emptyOff = MyCarsService.BlockOffset(0);
@@ -586,6 +607,17 @@ internal static class SelfTest
                 || !Checksum.CareerChecksumsMatch(statsBuf))
             {
                 Console.WriteLine("FAIL: wizard apply " + wiz);
+                return 17;
+            }
+            // Grouped Max-money target (preset style) must land on Layout.MaxMoney
+            string wizMax = StatsWizardPresets.Apply(statsBuf, new[]
+            {
+                new StatsWizardAction { Id = "career_jane", Enabled = true },
+                new StatsWizardAction { Id = "bank", Enabled = true, Target = "999,999,999" },
+            });
+            if (CareerStatsService.ReadMoney(statsBuf) != Layout.MaxMoney || !Checksum.CareerChecksumsMatch(statsBuf))
+            {
+                Console.WriteLine($"FAIL: wizard max bank after career_jane money={CareerStatsService.ReadMoney(statsBuf)} {wizMax}");
                 return 17;
             }
             Buffer.BlockCopy(wizSnap, 0, statsBuf, 0, statsBuf.Length);

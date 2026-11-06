@@ -32,6 +32,11 @@ public static class Layout
     /// </summary>
     public const int MaxMoney = 999_999_999;
     /// <summary>
+    /// Starter cash for yellow Start (post-Rachel freeroam base). Not MaxMoney —
+    /// 100% Save / Stats wizard can raise it later.
+    /// </summary>
+    public const int FreshStartMoney = 10_000;
+    /// <summary>
     /// Single byte immediately after Bank (sample value 1). Unknown — RAW label only.
     /// </summary>
     public const int UnknownAfterBankOffset = 0xA16E;

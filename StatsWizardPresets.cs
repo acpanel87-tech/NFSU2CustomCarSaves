@@ -42,6 +42,7 @@ public static class StatsWizardPresets
     [
         new() { Id = "bank", Label = "Bank", Enabled = true, Target = Layout.MaxMoney.ToString() },
         new() { Id = "complete", Label = "Game Completion flag", Enabled = true, Target = "1" },
+        new() { Id = "entered", Label = "Races Entered (proven)", Enabled = false, Target = "246" },
         new() { Id = "shops_all", Label = "Hidden shops → all", Enabled = true, Target = SaveMaxOut.HiddenShopsLen.ToString() },
         new() { Id = "extreme", Label = "Shop catalogs Extreme", Enabled = true, Target = "3" },
         new() { Id = "car_lot", Label = "Car lot → Jane", Enabled = true },
@@ -75,15 +76,25 @@ public static class StatsWizardPresets
             Actions = DefaultActions().Select(a =>
             {
                 a = Clone(a);
-                a.Enabled = a.Id is not ("rep_s1" or "rep_s2" or "rep_s3" or "rep_s4" or "rep_s5" or "spent");
-                // Max also sets high rep for all stages
+                a.Enabled = a.Id is not ("rep_s1" or "rep_s2" or "rep_s3" or "rep_s4" or "rep_s5" or "spent" or "entered");
                 if (a.Id.StartsWith("rep_s", StringComparison.Ordinal)) { a.Enabled = true; a.Target = "20000"; }
                 if (a.Id == "spent") { a.Enabled = true; a.Target = "999999"; }
+                if (a.Id == "entered") { a.Enabled = true; a.Target = "999"; }
                 if (a.Id == "career_jane") a.Enabled = true;
                 return a;
             }).ToList(),
         },
-        _ => new StatsWizardPreset { Name = "Custom", Actions = DefaultActions().Select(Clone).ToList() },
+        // Custom = mirror the open save: nothing selected; targets filled by UI sync.
+        _ => new StatsWizardPreset
+        {
+            Name = "Custom",
+            Actions = DefaultActions().Select(a =>
+            {
+                a = Clone(a);
+                a.Enabled = false;
+                return a;
+            }).ToList(),
+        },
     };
 
     private static StatsWizardAction Clone(StatsWizardAction a) => new()
@@ -123,19 +134,24 @@ public static class StatsWizardPresets
     /// <summary>Apply enabled proven/probable actions. Returns combined edit summary.</summary>
     public static string Apply(byte[] working, IEnumerable<StatsWizardAction> actions)
     {
+        // Bank last so later Jane/career copies never clobber an explicit money target.
+        var ordered = actions
+            .Where(a => a.Enabled)
+            .OrderBy(a => a.Id == "bank" ? 1 : 0)
+            .ToList();
+
         var logs = new List<string>();
-        foreach (var a in actions)
+        foreach (var a in ordered)
         {
-            if (!a.Enabled) continue;
             switch (a.Id)
             {
                 case "bank":
                     CareerStatsService.SetMoney(working, ParseInt(a.Target, Layout.MaxMoney));
-                    logs.Add($"bank={CareerStatsService.ReadMoney(working)}");
+                    logs.Add($"bank={CareerStatsService.ReadMoney(working):N0}");
                     break;
                 case "complete":
                     CareerStatsService.SetCareerComplete(working, ParseInt(a.Target, 1) != 0);
-                    logs.Add("complete=1");
+                    logs.Add($"complete={(CareerStatsService.IsCareerComplete(working) ? 1 : 0)}");
                     break;
                 case "shops_all":
                     logs.Add(CareerStatsService.SetHiddenShopsUnlockedCount(working, ParseInt(a.Target, SaveMaxOut.HiddenShopsLen)));
@@ -167,19 +183,45 @@ public static class StatsWizardPresets
                 case "spent":
                     logs.Add(CareerStatsService.SetTotalSpentOnCar(working, ParseInt(a.Target, 0), slot0to4: 0).Summary);
                     break;
+                case "entered":
+                    uint entered = (uint)Math.Max(0, ParseInt(a.Target, 0));
+                    bool ext = entered > Layout.RacesEnteredSafeMax;
+                    logs.Add(CareerStatsService.SetRacesEntered(working, entered, extended: ext).Summary);
+                    break;
                 default:
                     logs.Add($"skip unknown {a.Id}");
                     break;
             }
         }
         CareerStatsService.EnsureCareerChecksums(working);
-        return string.Join(" · ", logs);
+        return logs.Count == 0 ? "(nothing selected)" : string.Join(" · ", logs);
     }
 
-    private static int ParseInt(string? s, int fallback) =>
-        int.TryParse(s, out int v) ? v : fallback;
+    /// <summary>Accept plain ints or grouped forms like 999,999,999 / 999.999.999.</summary>
+    private static int ParseInt(string? s, int fallback)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return fallback;
+        string cleaned = s.Trim()
+            .Replace(" ", "", StringComparison.Ordinal)
+            .Replace(",", "", StringComparison.Ordinal)
+            .Replace(".", "", StringComparison.Ordinal)
+            .Replace("_", "", StringComparison.Ordinal);
+        return int.TryParse(cleaned, System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out int v)
+            ? v
+            : fallback;
+    }
 
-    private static float ParseFloat(string? s, float fallback) =>
-        float.TryParse(s, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : fallback;
+    private static float ParseFloat(string? s, float fallback)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return fallback;
+        if (float.TryParse(s, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out float v))
+            return v;
+        // Dutch-style 20000,5 → try comma as decimal
+        if (float.TryParse(s.Replace(',', '.'), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out v))
+            return v;
+        return fallback;
+    }
 }
