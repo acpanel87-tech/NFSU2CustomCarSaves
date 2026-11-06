@@ -45,7 +45,7 @@ $zip = Get-ChildItem -Path $desk -Filter "CustomCarSaves_Beta_*.zip" |
     Select-Object -First 1
 if (-not $zip) { throw "No CustomCarSaves_Beta_*.zip found on Desktop after pack." }
 
-$assetName = "NFSU2CustomCarSaves-$ver.zip"
+$assetName = "NFSU2CustomCarSaves-$ver-win-x64.zip"
 $stagedZip = Join-Path $env:TEMP $assetName
 Copy-Item -Force $zip.FullName $stagedZip
 
@@ -57,10 +57,10 @@ if ([string]::IsNullOrWhiteSpace($Notes)) {
 
 ### Install
 1. Download the zip
-2. Extract
+2. Extract the ``NFSU2CustomCarSaves`` folder
 3. Run ``NFSU2CustomCarSaves.exe``
 
-Requires [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0).
+Self-contained **Windows x64** build — no separate .NET install needed. Keep the whole folder together.
 "@
 }
 
