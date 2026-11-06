@@ -2,7 +2,6 @@
 # Layout:
 #   NFSU2CustomCarSaves/
 #     NFSU2CustomCarSaves.exe
-#     README.txt
 #     Assets/
 #     Data/
 #     Stock/   (Presets, DynoSaves, Templates, Stats, car-donors.json)
@@ -99,25 +98,6 @@ Copy-Item -Force (Join-Path $presets "save_rack.json") (Join-Path $data "save_ra
 Remove-Item (Join-Path $data "dyno_clipboard.json") -Force -ErrorAction SilentlyContinue
 Remove-Item (Join-Path $data "roam_flag.txt") -Force -ErrorAction SilentlyContinue
 
-$readme = @"
-NFSU2 Custom Car Saves (CCS)
-============================
-
-Folder layout
-  NFSU2CustomCarSaves.exe   — run this
-  Assets/                   — UI images + flags
-  Data/                     — your libraries (safe to wipe)
-  Stock/                    — shipped presets, dyno saves, templates
-  Tools/Wipe-All.bat        — clear user data only
-
-1. Keep this whole folder together (do not move only the .exe).
-2. Double-click NFSU2CustomCarSaves.exe
-
-No separate .NET install needed — Windows x64 runtime is included.
-Not affiliated with EA / Black Box.
-"@
-Set-Content -Path (Join-Path $app "README.txt") -Value $readme -Encoding UTF8
-
 $exe = Join-Path $app "NFSU2CustomCarSaves.exe"
 if (-not (Test-Path $exe)) {
     throw "Missing NFSU2CustomCarSaves.exe in staged folder."
@@ -144,4 +124,4 @@ Remove-Item -Recurse -Force $stage
 
 Write-Host ""
 Write-Host "DONE: $zip"
-Write-Host "Root: exe + README + Assets / Data / Stock / Tools (single-file, self-contained win-x64)."
+Write-Host "Root: exe + Assets / Data / Stock / Tools (single-file, self-contained win-x64)."
