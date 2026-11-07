@@ -5,11 +5,13 @@
 ## Download
 
 1. Open **[Releases](https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases)**
-2. Download the latest **Beta** zip (marked *Pre-release*, `*-win-x64.zip`)
+2. Download the latest **Beta** zip (marked *Pre-release*):
+   - `*-win-x64.zip` — 64-bit Windows (most PCs)
+   - `*-win-x86.zip` — 32-bit Windows
 3. Extract the **`NFSU2CustomCarSaves`** folder
 4. Run **`NFSU2CustomCarSaves.exe`**
 
-Self-contained **Windows x64** — no separate .NET install. Keep the whole folder together (do not move only the `.exe`).
+Self-contained — no separate .NET install. Keep the whole folder together (do not move only the `.exe`).
 
 ```
 NFSU2CustomCarSaves/

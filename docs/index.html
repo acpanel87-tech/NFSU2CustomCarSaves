@@ -12,8 +12,8 @@
   <meta property="og:title" content="NFSU2 CCS 0.1.0.7c" />
   <meta property="og:description" content="Run by one person. Built for the Underground 2 community, dynos, liveries, custom saves, and more without the noise." />
   <meta property="og:url" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/" />
-  <meta property="og:image" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=32" />
-  <meta property="og:image:secure_url" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=32" />
+  <meta property="og:image" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=33" />
+  <meta property="og:image:secure_url" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=33" />
   <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1024" />
   <meta property="og:image:height" content="313" />
@@ -22,8 +22,8 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="NFSU2 CCS 0.1.0.7c" />
   <meta name="twitter:description" content="Run by one person. Built for the Underground 2 community, dynos, liveries, custom saves, and more without the noise." />
-  <meta name="twitter:image" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=32" />
-  <link rel="image_src" href="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=32" />
+  <meta name="twitter:image" content="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=33" />
+  <link rel="image_src" href="https://acpanel87-tech.github.io/NFSU2CustomCarSaves/ccs-logo.png?v=33" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -222,13 +222,71 @@
       text-align: center;
     }
     .fine a { color: #9ef; }
+
+    .bar > span.is-paused { animation-play-state: paused; }
+
+    .arch-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(4, 2, 10, .72);
+      backdrop-filter: blur(6px);
+    }
+    .arch-backdrop.is-open { display: flex; }
+    .arch-card {
+      width: min(420px, 100%);
+      padding: 22px 20px 18px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(28, 14, 46, .96), rgba(10, 6, 18, .98));
+      box-shadow: 0 24px 60px rgba(0,0,0,.45);
+      text-align: center;
+    }
+    .arch-card h2 {
+      margin: 0 0 8px;
+      font-family: "Orbitron", sans-serif;
+      font-size: 1.05rem;
+      letter-spacing: .04em;
+    }
+    .arch-card p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.45;
+    }
+    .arch-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .arch-hint {
+      margin: 12px 0 0;
+      color: rgba(183, 168, 204, .8);
+      font-size: .74rem;
+    }
+    .arch-close {
+      margin-top: 12px;
+      background: none;
+      border: 0;
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+      font-size: .82rem;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
   </style>
 </head>
 <body>
   <div class="stars" aria-hidden="true"></div>
   <div class="wrap">
     <main class="panel">
-      <img class="logo" src="ccs-logo.png?v=32" width="1024" height="313" alt="NFSU2 Custom Car Saves - CCS" />
+      <img class="logo" src="ccs-logo.png?v=33" width="1024" height="313" alt="NFSU2 Custom Car Saves - CCS" />
 
       <h1 class="brand" id="brand">NFSU2 CCS</h1>
       <p class="lead">
@@ -239,13 +297,13 @@
         <a class="btn btn-primary" id="go" href="https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/tag/v0.1.0-beta.7c">
           Open release now
         </a>
-        <a class="btn btn-ghost" id="dl" href="https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/download/v0.1.0-beta.7c/NFSU2CustomCarSaves-0.1.0-beta.7c-win-x64.zip">
+        <button type="button" class="btn btn-ghost" id="dl">
           Download zip
-        </a>
+        </button>
       </div>
 
-      <p class="countdown">Taking you to the latest release in <strong id="sec">10</strong>s</p>
-      <div class="bar" aria-hidden="true"><span></span></div>
+      <p class="countdown">Taking you to the latest release in <strong id="sec">15</strong>s</p>
+      <div class="bar" aria-hidden="true"><span id="barfill"></span></div>
 
       <p class="credits">
         Made with &#10084;&#65039; by <strong>Barkie</strong>&#10024;<br />
@@ -255,16 +313,41 @@
     </main>
   </div>
 
+  <div class="arch-backdrop" id="archModal" role="dialog" aria-modal="true" aria-labelledby="archTitle" hidden>
+    <div class="arch-card">
+      <h2 id="archTitle">Choose your download</h2>
+      <p>Same app — pick 64-bit (most PCs) or 32-bit Windows.</p>
+      <div class="arch-actions">
+        <button type="button" class="btn btn-primary" id="dl64">64-bit (x64)</button>
+        <button type="button" class="btn btn-ghost" id="dl86">32-bit (x86)</button>
+      </div>
+      <p class="arch-hint" id="archHint">Tip: almost every modern PC is 64-bit.</p>
+      <button type="button" class="arch-close" id="archClose">Not now</button>
+    </div>
+  </div>
+
   <script>
     (function () {
       // Always resolve the newest GitHub release (including prereleases).
-      // /releases/latest ignores betas — so we hit the releases list API instead.
       var go = document.getElementById("go");
       var dl = document.getElementById("dl");
       var brand = document.getElementById("brand");
-      var fallbackZip = "https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/download/v0.1.0-beta.7c/NFSU2CustomCarSaves-0.1.0-beta.7c-win-x64.zip";
+      var modal = document.getElementById("archModal");
+      var bar = document.getElementById("barfill");
+      var fallback64 = "https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/download/v0.1.0-beta.7c/NFSU2CustomCarSaves-0.1.0-beta.7c-win-x64.zip";
+      var fallback86 = "https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/download/v0.1.0-beta.7c/NFSU2CustomCarSaves-0.1.0-beta.7c-win-x86.zip";
       var releaseUrl = "https://github.com/acpanel87-tech/NFSU2CustomCarSaves/releases/tag/v0.1.0-beta.7c";
-      var zipUrl = fallbackZip;
+      var zip64 = fallback64;
+      var zip86 = fallback86;
+
+      var left = 15;
+      var paused = false;
+      var done = false;
+      var el = document.getElementById("sec");
+
+      if (bar) {
+        bar.style.animation = "fill 15s linear forwards";
+      }
 
       function prettyName(rel) {
         if (!rel) return "NFSU2 CCS";
@@ -273,16 +356,14 @@
         return tag ? ("NFSU2 CCS " + tag.replace(/^0\.1\.0-beta\./i, "0.1.0.").replace(/-beta\./i, ".")) : "NFSU2 CCS";
       }
 
-      function pickZip(assets) {
+      function pickZip(assets, rid) {
         if (!Array.isArray(assets)) return null;
-        var any = null;
+        var re = rid === "x86" ? /win-x86/i : /win-x64/i;
         for (var i = 0; i < assets.length; i++) {
           var a = assets[i];
-          if (!a || !/\.zip$/i.test(a.name || "")) continue;
-          if (/win-x64/i.test(a.name)) return a;
-          if (!any) any = a;
+          if (a && re.test(a.name || "") && /\.zip$/i.test(a.name || "")) return a;
         }
-        return any;
+        return null;
       }
 
       function applyRelease(rel) {
@@ -292,16 +373,43 @@
         var name = prettyName(rel);
         if (brand) brand.textContent = name;
         document.title = name;
-        var zip = pickZip(rel.assets);
-        if (zip && zip.browser_download_url) {
-          zipUrl = zip.browser_download_url;
-          if (dl) dl.href = zipUrl;
-        } else if (dl) {
-          dl.href = fallbackZip;
+        var a64 = pickZip(rel.assets, "x64");
+        var a86 = pickZip(rel.assets, "x86");
+        if (a64 && a64.browser_download_url) zip64 = a64.browser_download_url;
+        if (a86 && a86.browser_download_url) zip86 = a86.browser_download_url;
+      }
+
+      function setPaused(on) {
+        paused = !!on;
+        if (bar) {
+          if (on) bar.classList.add("is-paused");
+          else bar.classList.remove("is-paused");
         }
       }
 
-      if (dl) dl.href = fallbackZip;
+      function openModal() {
+        if (!modal) return;
+        modal.hidden = false;
+        modal.classList.add("is-open");
+        setPaused(true);
+      }
+
+      function closeModal() {
+        if (!modal) return;
+        modal.classList.remove("is-open");
+        modal.hidden = true;
+        setPaused(false);
+      }
+
+      function download(url) {
+        if (!url) return;
+        var a = document.createElement("a");
+        a.href = url;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
 
       fetch("https://api.github.com/repos/acpanel87-tech/NFSU2CustomCarSaves/releases?per_page=1", {
         headers: { "Accept": "application/vnd.github+json" }
@@ -310,17 +418,35 @@
         .then(function (list) {
           if (Array.isArray(list) && list[0]) applyRelease(list[0]);
         })
-        .catch(function () {
-          if (dl) dl.href = fallbackZip;
-        });
+        .catch(function () { /* keep fallbacks */ });
 
-      var left = 10;
-      var el = document.getElementById("sec");
-      var timer = setInterval(function () {
+      if (dl) {
+        dl.addEventListener("click", function (e) {
+          e.preventDefault();
+          openModal();
+        });
+      }
+      var b64 = document.getElementById("dl64");
+      var b86 = document.getElementById("dl86");
+      var bClose = document.getElementById("archClose");
+      if (b64) b64.addEventListener("click", function () { download(zip64); closeModal(); });
+      if (b86) b86.addEventListener("click", function () { download(zip86); closeModal(); });
+      if (bClose) bClose.addEventListener("click", closeModal);
+      if (modal) {
+        modal.addEventListener("click", function (e) {
+          if (e.target === modal) closeModal();
+        });
+      }
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && modal && modal.classList.contains("is-open")) closeModal();
+      });
+
+      setInterval(function () {
+        if (paused || done) return;
         left -= 1;
         if (el) el.textContent = String(Math.max(left, 0));
         if (left <= 0) {
-          clearInterval(timer);
+          done = true;
           window.location.href = releaseUrl;
         }
       }, 1000);
